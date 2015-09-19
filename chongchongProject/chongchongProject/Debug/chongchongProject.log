@@ -1,0 +1,30 @@
+﻿生成启动时间为 2015/9/19 16:40:28。
+     1>项目“D:\facedata\Personal_Data\facedata\chongchongProject\chongchongProject\chongchongProject\chongchongProject.vcxproj”在节点 2 上(Build 个目标)。
+     1>InitializeBuildStatus:
+         正在创建“Debug\chongchongProject.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
+       ClCompile:
+         D:\Qt\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt handGestureRecognitor.cpp MainSample.cpp _convert.cpp _utils.cpp
+         _utils.cpp
+     1>d:\facedata\personal_data\facedata\chongchongproject\chongchongproject\chongchongproject\_utils.cpp(108): warning C4244: “参数”: 从“double”转换到“const int”，可能丢失数据
+     1>d:\facedata\personal_data\facedata\chongchongproject\chongchongproject\chongchongproject\_utils.cpp(249): warning C4244: “=”: 从“const double”转换到“uchar”，可能丢失数据
+     1>d:\facedata\personal_data\facedata\chongchongproject\chongchongproject\chongchongproject\_utils.cpp(372): warning C4018: “<”: 有符号/无符号不匹配
+     1>d:\facedata\personal_data\facedata\chongchongproject\chongchongproject\chongchongproject\_utils.cpp(629): warning C4244: “初始化”: 从“double”转换到“const int”，可能丢失数据
+     1>d:\facedata\personal_data\facedata\chongchongproject\chongchongproject\chongchongproject\_utils.cpp(662): warning C4244: “初始化”: 从“const double”转换到“const int”，可能丢失数据
+         _convert.cpp
+         MainSample.cpp
+         handGestureRecognitor.cpp
+         正在生成代码...
+       Link:
+         D:\Qt\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\facedata\Personal_Data\facedata\chongchongProject\chongchongProject\Debug\chongchongProject.exe" /INCREMENTAL /NOLOGO opencv_ml246d.lib opencv_calib3d246d.lib opencv_contrib246d.lib opencv_core246d.lib opencv_features2d246d.lib opencv_flann246d.lib opencv_gpu246d.lib opencv_highgui246d.lib opencv_imgproc246d.lib opencv_legacy246d.lib opencv_objdetect246d.lib opencv_ts246d.lib opencv_video246d.lib opencv_nonfree246d.lib opencv_ocl246d.lib opencv_photo246d.lib opencv_stitching246d.lib opencv_superres246d.lib opencv_videostab246d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\facedata\Personal_Data\facedata\chongchongProject\chongchongProject\Debug\chongchongProject.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\facedata\Personal_Data\facedata\chongchongProject\chongchongProject\Debug\chongchongProject.lib" /MACHINE:X86 Debug\handGestureRecognitor.obj
+         Debug\MainSample.obj
+         Debug\_convert.obj
+         Debug\_utils.obj
+         chongchongProject.vcxproj -> D:\facedata\Personal_Data\facedata\chongchongProject\chongchongProject\Debug\chongchongProject.exe
+       FinalizeBuildStatus:
+         正在删除文件“Debug\chongchongProject.unsuccessfulbuild”。
+         正在对“Debug\chongchongProject.lastbuildstate”执行 Touch 任务。
+     1>已完成生成项目“D:\facedata\Personal_Data\facedata\chongchongProject\chongchongProject\chongchongProject\chongchongProject.vcxproj”(Build 个目标)的操作。
+
+生成成功。
+
+已用时间 00:00:07.52
