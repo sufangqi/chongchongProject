@@ -1,8 +1,9 @@
 #include "_utils.h"
 #include "handGestureRecognitor.h"
-#define _SHOW_
+//#define _SHOW_
 //#define ENABLEADPATIVESKINMOLDE
 //#define USEOTSU
+#define USE_SKIN_COLOR_DIFF
 #ifdef _SHOW_
 extern Mat dispImg;
 unsigned int gHandID;
@@ -129,7 +130,7 @@ PTS32  cvThresholdOtsu(Mat&src)
     //histogram  
     float histogram[256] = {0};  
     for(int i=0;i < height;i++) {  
-		unsigned char* p=(unsigned char*)src.data+src.step[0]*i;  //依次取宽的步长
+		unsigned char* p=(unsigned char*)src.data+src.step[0]*i;  
 		//	widthStep*i;  
         for(int j = 0;j < width;j++) {  
             histogram[*p++]++;  
@@ -163,8 +164,8 @@ PTS32  cvThresholdOtsu(Mat&src)
             thre = i;  
         }  
     } 
-
-
+     if(thre < 0)
+		 thre = 0;
 	threshold(src,src,thre,255,CV_THRESH_BINARY);
 	return PT_RET_OK;
 }  
@@ -291,7 +292,49 @@ static PTS32 _getSkinMask(Mat& srcImg, Mat& dstImg)
 
     return PT_RET_OK;
 }
+static PTS32 SkinDetectionBasedOnColorDiff(Mat& SrcImg,Mat &DstImg)
+{
+	if(SrcImg.channels() != 3){
+	    PTDEBUG("Error in SkinDetectionBasedOnColorDiff .The Input Image's channel must be 3");
+		 return PT_RET_INVALIDPARAM;
+	}
+	    vector<Mat> YCrCb;
+		Mat YcbcrImg;
+	
+		cvtColor(SrcImg,YcbcrImg,CV_BGR2YCrCb);
+		split(YcbcrImg,YCrCb);
+		Mat imgCr=YCrCb[1];
+		Mat imgCb=YCrCb[2];
 
+		Mat Dst(imgCr.size(),CV_32F);
+        int rows = imgCr.rows;
+		int cols = imgCr.cols*imgCr.channels();
+		const int channels=imgCr.channels();
+	
+		if(imgCr.isContinuous() && Dst.isContinuous()){
+			cols=cols*rows;
+			rows = 1;
+		}
+
+		for(int i = 0;i < rows;i++){
+		   uchar *pCr = imgCr.ptr<uchar>(i);
+		   uchar *pCb = imgCb.ptr<uchar>(i);
+		   float *pDst = Dst.ptr<float>(i);
+		   for(int j = 0;j < cols; j++){
+			   if(pCr[j] - pCb[j] < 15)
+				   pDst[j] = 0;
+			   else
+				   pDst[j] = pCr[j] - pCb[j];
+		   }
+		}
+		normalize(Dst,Dst,255,0,NORM_MINMAX);
+
+		
+		Dst.convertTo(DstImg,CV_8UC1);
+		cvThresholdOtsu(DstImg);
+		dilate(DstImg,DstImg,Mat());
+		return PT_RET_OK;
+}
 //knock point detection in HSV space, using Hue and Saturation
 PTS32 _getKnockMask(Mat& srcImg, Mat& dstImg, const RoiLocation roiLocation)
 {
@@ -423,11 +466,8 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
        _getContourCenter(maxContour, handCenter);
        const Point center_gravy = Point(handCenter.x+handRect.x, handCenter.y+handRect.y);//TODO think again
 
-      // if(handCenter.x*1.2+1 < handRect.width) {
 	   hand = gray(Rect(handRect.x, handRect.y, handRect.width*3/5, handRect.height));
-      /* } else {
-          hand = gray(handRect);
-       }*/
+     
 
 #ifdef _SHOW_
        Mat draw(skinArea.size(), CV_8UC3);
@@ -533,7 +573,7 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
 		  circle( show, thumbContour[1],   4, Scalar(255,0,100), 2 );  
 		  circle( show, thumbContour[2],   4, Scalar(100,0,255), 2 );
 		  rectangle(show,rectThumb,Scalar(255),2);
-          imshow("hand[Down]", show);
+          imshow(" thumb", show);
 	   // cvWaitKey(0);
        handID++;
 #endif
@@ -583,11 +623,6 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
                 }
              }
           } else {
- #ifdef _SHOW_
-          Mat show(skinArea.size(), CV_8UC3);
-          cvtColor(skinArea, show, CV_GRAY2BGR);
-          imshow("hand[Down]", show);
-#endif
             handInfo.Thumb = 1.0f;
           }
 
@@ -672,11 +707,11 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
           handStatus = FIST_ON;
        }
 
-       if(handInfo.ratio_hull_handarea>80 && handInfo.Thumb<0.45) {//ratio_hull_handarea is the the hull ratio
+       if(handInfo.ratio_hull_handarea>20 && handInfo.Thumb<0.45) {//ratio_hull_handarea is the the hull ratio
           handStatus = PALM_ON;
        }
 
-       if(handInfo.ratio_hull_handarea<80 && handInfo.Thumb>0.6) {
+       if(handInfo.ratio_hull_handarea<20 && handInfo.Thumb>0.6) {
           handStatus = FIST_ON;
        }
 
@@ -696,7 +731,7 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
     return PT_RET_OK;
 }
 
-PTS32 _getHandRecognitizeGesture(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus)
+PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,bool IsLongTimeKnocK)
 {
 #ifdef _SHOW_
     gHandID++;
@@ -707,42 +742,198 @@ PTS32 _getHandRecognitizeGesture(Mat& handImg, double stdKnockBaseArea, const Ro
     Mat skinMask(handImg.size(), CV_8UC1);
 
 #ifdef ENABLEADPATIVESKINMOLDE
-#ifdef USEOTSU
-	 _mvgetSkinMaskOtsu(handImg, skinMask);
-#else
     _mvgetSkinMask(handImg, skinMask, 0.75);
-#endif
-
+#else
+#ifdef USE_SKIN_COLOR_DIFF
+	SkinDetectionBasedOnColorDiff(handImg,skinMask);
 #else
     _getSkinMask(handImg, skinMask);
+#endif
 #endif
 
     Mat hand;
     HandInfo handInfo = HandInfo(0.0f, 0.0f);
     _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
-#ifdef _SHOW_
-	if(!hand.empty())
-	{
-	  imshow("Hand",hand);
-	}
-#endif
     Mat knockMask(handImg.size(), CV_8UC1);
     _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
-#ifdef _SHOW_
-	imshow("KnockMask",knockMask);
-#endif
     double area = 0.0f;
     Point tmp;
     _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
 
-    if(hand.empty() || area/stdKnockBaseArea>0.8) {
-       PTDEBUG("didn't detected hand\n");
-       handStatus = HAND_STATUS_COUNT;
-    } else {
-       PTDEBUG("detected hand, next step is recognize it's gesture...");
-       _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-    }
+	static Mat MaskOfKnockStaticUp ;
+	if(IsLongTimeKnocK){//Hand put on the knock in long time,return the reconnitize result on every frame
+		if(hand.empty() || area/stdKnockBaseArea>0.8) {
+		   PTDEBUG("didn't detected hand\n");
+		   MaskOfKnockStaticUp = knockMask;
+		   handStatus = HAND_STATUS_COUNT;
+		} else {
+		   PTDEBUG("detected hand, next step is recognize it's gesture...");
 
+		   Mat SkinAboveOnKnock;
+		   int SumOfSkinPixel = 0;
+		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticUp);
+		   for(int i = 0 ;i <skinMask.rows;i++){
+			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+			   for(int j =0; j<skinMask.cols;j++){
+				   if(pData[j] == 255){
+					   SumOfSkinPixel++;
+				   }
+			   }
+		   }
+#ifdef _SHOW_
+		    imshow("SKINABOVE",SkinAboveOnKnock);
+#endif
+		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
+		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
+			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
+		   } else{
+			   handStatus = HAND_STATUS_COUNT;
+		   }
+		}
+	} else { //return the result only once when the hand put on the konck point
+		static bool startDetectHandUp = true;
+		if(hand.empty() || area/stdKnockBaseArea>0.8) {
+		   PTDEBUG("didn't detected hand\n");
+		   MaskOfKnockStaticUp = knockMask;
+		   startDetectHandUp = true;
+		   handStatus = HAND_STATUS_COUNT;
+		} else if(startDetectHandUp){
+		   PTDEBUG("detected hand, next step is recognize it's gesture...");
+		   Mat SkinAboveOnKnock;
+		   int SumOfSkinPixel = 0;
+		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticUp);
+		   for(int i = 0 ;i <skinMask.rows;i++){
+			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+			   for(int j =0; j<skinMask.cols;j++){
+				   if(pData[j] == 255){
+					   SumOfSkinPixel++;
+				   }
+			   }
+		   }
+#ifdef _SHOW_
+		    imshow("SKINABOVE",SkinAboveOnKnock);
+#endif
+		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
+		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
+			  startDetectHandUp = false;
+			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
+		   } else{
+			   handStatus = HAND_STATUS_COUNT;
+		   }
+		}
+	}
+#ifdef _SHOW_
+	imshow("KnockMask",knockMask);
+	imshow("SkinMask",skinMask);
+	if(!hand.empty()){
+	  imshow("Hand",hand);
+	}
+#endif
+    PTDEBUG("Exit %s ---> handStatus[%s]\n", __FUNCTION__, strHandGesture[handStatus]);
+    return PT_RET_OK;
+}
+PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,bool IsLongTimeKnocK)
+{
+#ifdef _SHOW_
+    gHandID++;
+#endif
+
+    PTDEBUG("Enter %s\n", __FUNCTION__);
+
+    Mat skinMask(handImg.size(), CV_8UC1);
+
+#ifdef ENABLEADPATIVESKINMOLDE
+    _mvgetSkinMask(handImg, skinMask, 0.75);
+#else
+#ifdef USE_SKIN_COLOR_DIFF
+	SkinDetectionBasedOnColorDiff(handImg,skinMask);
+#else
+    _getSkinMask(handImg, skinMask);
+#endif
+#endif
+
+    Mat hand;
+    HandInfo handInfo = HandInfo(0.0f, 0.0f);
+    _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
+    Mat knockMask(handImg.size(), CV_8UC1);
+    _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
+    double area = 0.0f;
+    Point tmp;
+    _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
+
+	static Mat MaskOfKnockStaticDown ;
+	if(IsLongTimeKnocK){//Hand put on the knock in long time,return the reconnitize result on every frame
+		if(hand.empty() || area/stdKnockBaseArea>0.8) {
+		   PTDEBUG("didn't detected hand\n");
+		   MaskOfKnockStaticDown = knockMask;
+		   handStatus = HAND_STATUS_COUNT;
+		} else {
+		   PTDEBUG("detected hand, next step is recognize it's gesture...");
+
+		   Mat SkinAboveOnKnock;
+		   int SumOfSkinPixel = 0;
+		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
+		   for(int i = 0 ;i <skinMask.rows;i++){
+			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+			   for(int j =0; j<skinMask.cols;j++){
+				   if(pData[j] == 255){
+					   SumOfSkinPixel++;
+				   }
+			   }
+		   }
+#ifdef _SHOW_
+		    imshow("SKINABOVE",SkinAboveOnKnock);
+#endif
+		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
+		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
+			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
+		   } else{
+			   handStatus = HAND_STATUS_COUNT;
+		   }
+		}
+	} else { //return the result only once when the hand put on the konck point
+		static bool startDetectHandDown = true;
+		if(hand.empty() || area/stdKnockBaseArea>0.8) {
+		   PTDEBUG("didn't detected hand\n");
+		   MaskOfKnockStaticDown = knockMask;
+		   startDetectHandDown = true;
+		   handStatus = HAND_STATUS_COUNT;
+		} else if(startDetectHandDown){
+		   PTDEBUG("detected hand, next step is recognize it's gesture...");
+		   Mat SkinAboveOnKnock;
+		   int SumOfSkinPixel = 0;
+		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
+		   for(int i = 0 ;i <skinMask.rows;i++){
+			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+			   for(int j =0; j<skinMask.cols;j++){
+				   if(pData[j] == 255){
+					   SumOfSkinPixel++;
+				   }
+			   }
+		   }
+#ifdef _SHOW_
+		    imshow("SKINABOVE",SkinAboveOnKnock);
+#endif
+		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
+		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
+			  startDetectHandDown = false;
+			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
+		   } else{
+			   handStatus = HAND_STATUS_COUNT;
+		   }
+		}
+	}
+#ifdef _SHOW_
+	imshow("KnockMask",knockMask);
+	imshow("SkinMask",skinMask);
+	if(!hand.empty()){
+	  imshow("Hand",hand);
+	}
+#endif
     PTDEBUG("Exit %s ---> handStatus[%s]\n", __FUNCTION__, strHandGesture[handStatus]);
     return PT_RET_OK;
 }

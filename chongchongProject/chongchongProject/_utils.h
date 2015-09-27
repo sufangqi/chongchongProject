@@ -13,7 +13,7 @@ using namespace std;
 #define CB_SKIN_MAX                  200
 
 //the frame number of decide the base
-#define INIT_FRAME_NUM               10
+#define INIT_FRAME_NUM               60
 
 //#define ENABLEADPATIVESKINMOLDE      1
 
@@ -38,7 +38,8 @@ public:
 } HandInfo;
 
 //return the recognized result
-PTS32 _getHandRecognitizeGesture(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus);
+PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,bool IsLongTimeKnock = true);
+PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,bool IsLongTimeKnock = true);
 
 //extract the knock base
 PTS32 _getKnockBase(Mat& srcImg, const RoiLocation roiLocation, double& area, PTBOOL& isFinish);

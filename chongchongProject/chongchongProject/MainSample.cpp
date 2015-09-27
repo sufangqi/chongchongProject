@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 //  Mat logoFist = imread("fist.png");
 
   VideoCapture cap;
-  int imageNum=1;
+  int imageNum=164;
   cap.open(argv[1]);
   if(!cap.isOpened()) {
      PTDEBUG("VideoCapture is not opened!\n");
@@ -43,10 +43,10 @@ int main(int argc, char *argv[])
 #endif
 #ifdef _READ_IMAGE_
 	char image_name[20]={""};
-	sprintf_s(image_name,"%d.png",imageNum++);
+	sprintf_s(image_name,"img_0%d.jpg",imageNum++);
 	string image_name_string=image_name;
-	frame=imread("D:\\facedata\\Personal_Data\\facedata\\DDD\\"+image_name_string);
-	cvtColor(frame,frame,CV_RGB2BGR);
+	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片2\\"+image_name_string);
+	
 #endif
     if(frame.empty()) {
        PTDEBUG("Cannot grap the frame!\n");
@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
        PTDEBUG("frame.cols[%d], frame.rows[%d]\n", frame.cols, frame.rows);
     }
 #ifdef _READ_IMAGE_//reverse clockwise roate the image 90 degree
-	/*transpose(frame,frame);
-    flip(frame,frame,0);*/
+	transpose(frame,frame);
+    flip(frame,frame,0);
 #endif
     if(PT_RET_OK != recognitor.init(frame.data, frame.cols, frame.rows, PT_IMG_BGR888)) {
        PTDEBUG("init failed!\n");
@@ -116,9 +116,8 @@ int main(int argc, char *argv[])
                 break;
     }
 #endif
-
     handStatus = HAND_STATUS_COUNT;
-    //recognitor.getDownHandGesture(handStatus);
+    recognitor.getDownHandGesture(handStatus);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
@@ -140,7 +139,7 @@ int main(int argc, char *argv[])
 	resize(dispImg,dispImg,Size(640,480));
     imshow("dispImg", dispImg);
 	//imwrite("D:\\facedata\\Personal_Data\\facedata\\1080x960\\Result\\"+image_name_string,dispImg);
-    waitKey(0);
+   waitKey(0);
 #endif
     PTDEBUG("show--------+++++++++++++\n");
   }
