@@ -1,6 +1,6 @@
 #include "_utils.h"
 #include "handGestureRecognitor.h"
-//#define _SHOW_
+#define _SHOW_
 //#define ENABLEADPATIVESKINMOLDE
 //#define USEOTSU
 #define USE_SKIN_COLOR_DIFF
@@ -535,8 +535,8 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
 
               const double depth = defects[i][3]/sqrt(width); // distance between the farthest point and the convex hull
               //The thumb area constraints,TODO
-//              if(depth>20.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>50 && (skinArea.cols-ptEnd.x)>10) {
-              if(depth>10.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>50 && (skinArea.cols-ptEnd.x)>10) {
+              //if(depth>20.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>50 && (skinArea.cols-ptEnd.x)>10) {
+              if(depth>15.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>50 && (skinArea.cols-ptEnd.x)>10) {
                 if(ptEnd.y > farY) {
                    farY = ptFar.y;
                    thumbIndex = i;
@@ -557,10 +557,7 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
              const int farIdx = defects[thumbIndex][2];
              thumbContour.push_back(maxContour[farIdx]);
 
-
              Rect rect = boundingRect(thumbContour);
-
-             Rect rectThumb = Rect(rect.x, rect.y, abs(handCenter.x-rect.x)+2, rect.height);
 
  #ifdef _SHOW_
           static int handID = 0;
@@ -570,58 +567,22 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
           circle(show, handCenter, 4, CV_RGB(0,255,0));
           circle(show, center_gravy, 4, CV_RGB(255,0,0));
 		  circle( show, thumbContour[0],   4, Scalar(255,0,100), 2 );  
-		  circle( show, thumbContour[1],   4, Scalar(255,0,100), 2 );  
-		  circle( show, thumbContour[2],   4, Scalar(100,0,255), 2 );
-		  rectangle(show,rectThumb,Scalar(255),2);
+		/*  circle( show, thumbContour[1],   4, Scalar(255,0,100), 2 );  
+		  circle( show, thumbContour[2],   4, Scalar(100,0,255), 2 );*/
+		  rectangle(show,rect,Scalar(255),2);
           imshow(" thumb", show);
 	   // cvWaitKey(0);
        handID++;
 #endif
+	         double LengthOfHandcenterAndthumb = pow(thumbContour[0].x-handCenter.x,2)+pow(thumbContour[0].y-handCenter.y,2);
+	         double LengthOfHandcenterAndthumbFar = pow(thumbContour[2].x-handCenter.x,2);
+			 //cout<<LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar<<endl;
              // if the handCenter is in the right of thumb rect origin
-             if(handCenter.x > rect.x) {
-                PTDEBUG("handCenter.x[%d] > rect.x[%d]\n", handCenter.x, rect.x);
-                if(rectThumb.x+abs(handCenter.x-rect.x)+2<skinArea.cols && rectThumb.y+rectThumb.height<skinArea.rows && rectThumb.width>0) {
-                   vector<vector<Point>> contoursThumb;
-                   double thumbArea = 0.0f;
-                   findContours(gray(rectThumb).clone(), contoursThumb, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-                   for(size_t i = 0; i < contoursThumb.size();i++){
-                       const double area = contourArea(contoursThumb[i]);
-                       if(area > thumbArea) {
-                          thumbArea = area;
-                       }
-                   }
-
-                   if(thumbArea > 0.0f) {
-                      handInfo.Thumb = thumbArea/rectThumb.area();
-                   } else {
-                      handInfo.Thumb = 1.0f;
-                   }
-                } else {
-                      handInfo.Thumb = 1.0f;
-                }
-             } else {
-                PTDEBUG("handCenter.x[%d] <= rect.x[%d]\n", handCenter.x, rect.x);
-                Rect rectThumb = rect;
-                if(rectThumb.x+rect.width<skinArea.cols && rectThumb.y+rectThumb.height<skinArea.rows && rectThumb.width>0) {                
-					vector<vector<Point>> contoursThumb;
-                   double thumbArea = 0.0f;
-                   findContours(gray(rectThumb).clone(), contoursThumb, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-                   for(size_t i = 0; i < contoursThumb.size(); i++) {
-                       const double area = contourArea(contoursThumb[i]);
-                       if(area > thumbArea) {
-                          thumbArea = area;
-                       }
-                   }
-
-                   if(thumbArea > 0.0f) {
-                      handInfo.Thumb = thumbArea/rectThumb.area();
-                   } else {
-                      handInfo.Thumb = 1.0f;
-                   }
-                } else {
-                    handInfo.Thumb = 1.0f;
-                }
-             }
+			 if( (double)rect.height / rect.width < 1.2 || LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar >10) {
+				handInfo.Thumb = 0.0f;
+			  } else {
+				  handInfo.Thumb = 1.0f;
+			 } 
           } else {
             handInfo.Thumb = 1.0f;
           }
@@ -631,7 +592,6 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
 
           const double defectsArea = hullArea - maxArea;
           if(defectsArea > 1.0f) {
-//             handInfo.ratio_hull_handarea = pow(widthHeightRatio, 2.0f) * defectsArea / pow(perimeter, 2.0f) / pow(maxArea, 2.0f);
              handInfo.ratio_hull_handarea = pow(widthHeightRatio, 2.0f) * defectsArea * pow(perimeter, 2.0f) / pow(maxArea, 2.0f);
           } else {
              handInfo.ratio_hull_handarea = hullArea/maxArea;
@@ -657,7 +617,7 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
 {
     PTDEBUG("Enter %s, handInfo.Thumb[%f], handInfo.ratio_hull_handarea[%f]\n", __FUNCTION__, handInfo.Thumb, handInfo.ratio_hull_handarea);
 
-    const int step = 5;
+    const int step = 3;
     const int lineCount = 10;
     const int rows = hand.rows;
     const int cols = hand.cols;
@@ -699,31 +659,21 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
     PTDEBUG("finger[%d], handInfo.Thumb[%f], handInfo.ratio_hull_handarea[%f]\n", finger, handInfo.Thumb, handInfo.ratio_hull_handarea);
 	printf_s("finger[%d], handInfo.Thumb[%f], handInfo.ratio_hull_handarea[%f]\n", finger, handInfo.Thumb, handInfo.ratio_hull_handarea);
     //if number of finger is greater than 4,then palm
-    if(finger > 4) {
+    if(finger > 3) {
        handStatus = PALM_ON;
     } else {
        //TODO, refine
-       if(finger==0 && handInfo.Thumb>0.6) {//if the number of finger is zero and thumb is greater than 0.6,then fist
+       if(finger==0 && handInfo.Thumb == 1) {//if the number of finger is zero and thumb is greater than 0.6,then fist
           handStatus = FIST_ON;
-       }
-
-       if(handInfo.ratio_hull_handarea>20 && handInfo.Thumb<0.45) {//ratio_hull_handarea is the the hull ratio
+       }else if(handInfo.ratio_hull_handarea>20 && handInfo.Thumb == 0) {//ratio_hull_handarea is the the hull ratio
           handStatus = PALM_ON;
-       }
-
-       if(handInfo.ratio_hull_handarea<20 && handInfo.Thumb>0.6) {
+       }else if(handInfo.ratio_hull_handarea<20 && handInfo.Thumb == 1) {
           handStatus = FIST_ON;
-       }
+       }else if(handInfo.Thumb == 0)
+		   handStatus = PALM_ON;
+	   else
+		   handStatus = FIST_ON;
 
-       if(finger==0) {
-          handStatus = FIST_ON;
-       }
-
-       if(handInfo.Thumb <= 0.45) {
-          handStatus = PALM_ON;
-       } else {
-          handStatus = FIST_ON;
-       }
     }
 
     PTDEBUG("Exit %s ---> handStatus[%d]\n", __FUNCTION__, handStatus);
@@ -847,7 +797,7 @@ PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, cons
 #ifdef ENABLEADPATIVESKINMOLDE
     _mvgetSkinMask(handImg, skinMask, 0.75);
 #else
-#ifdef USE_SKIN_COLOR_DIFF
+#ifdef USE_SKIN_COLOR_DIFF+
 	SkinDetectionBasedOnColorDiff(handImg,skinMask);
 #else
     _getSkinMask(handImg, skinMask);

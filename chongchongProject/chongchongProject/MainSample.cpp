@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     }
 
     PTHandStatus handStatus = HAND_STATUS_COUNT;
-    recognitor.getUpHandGesture(handStatus);
+    recognitor.getUpHandGesture(handStatus,0);
     PTDEBUG("recognized UP hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     }
 #endif
     handStatus = HAND_STATUS_COUNT;
-    recognitor.getDownHandGesture(handStatus);
+    //recognitor.getDownHandGesture(handStatus,0);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>D:\facedata\阿里巴巴开放性项目\实验视频18\1.mp4</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>D:\facedata\阿里巴巴开放性项目\实验视频18\5.mp4</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
