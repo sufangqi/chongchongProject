@@ -13,7 +13,7 @@ using namespace std;
 #define CB_SKIN_MAX                  200
 
 //the frame number of decide the base
-#define INIT_FRAME_NUM               60
+#define INIT_FRAME_NUM               10
 
 //#define ENABLEADPATIVESKINMOLDE      1
 

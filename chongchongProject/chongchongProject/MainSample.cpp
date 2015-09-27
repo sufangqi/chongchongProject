@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	char image_name[20]={""};
 	sprintf_s(image_name,"img_0%d.jpg",imageNum++);
 	string image_name_string=image_name;
-	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片2\\"+image_name_string);
+	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片3\\"+image_name_string);
 	
 #endif
     if(frame.empty()) {
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     }
 
     PTHandStatus handStatus = HAND_STATUS_COUNT;
-    recognitor.getUpHandGesture(handStatus,0);
+    recognitor.getUpHandGesture(handStatus);
     PTDEBUG("recognized UP hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     }
 #endif
     handStatus = HAND_STATUS_COUNT;
-    //recognitor.getDownHandGesture(handStatus,0);
+    recognitor.getDownHandGesture(handStatus);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
