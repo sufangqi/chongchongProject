@@ -168,17 +168,17 @@ PTS32 HandGestureRecognitor::studyTwoKnockBase(void)
     return PT_RET_OK;
 }
 
-PTS32 HandGestureRecognitor::getUpHandGesture(PTHandStatus& handStatus,bool IsLongTimeKnock)
+PTS32 HandGestureRecognitor::getUpHandGesture(PTHandStatus& handStatus,int &KnockNumber)
 {
-    _getHandRecognitizeGestureUp(gUpHandImg, this->mStdUpPointArea, ROIUP, handStatus,IsLongTimeKnock);
+    _getHandRecognitizeGestureUp(gUpHandImg, this->mStdUpPointArea, ROIUP, handStatus,KnockNumber);
     return PT_RET_OK;
 }
 
-PTS32 HandGestureRecognitor::getDownHandGesture(PTHandStatus& handStatus,bool IsLongTimeKnock)
+PTS32 HandGestureRecognitor::getDownHandGesture(PTHandStatus& handStatus,int &KnockNumber)
 {
     //flipping around the x-axis
     flip(gDownHandImg, gDownHandImg, 0);
-    _getHandRecognitizeGestureDown(gDownHandImg, this->mStdDownPointArea, ROIDOWN, handStatus,IsLongTimeKnock);
+    _getHandRecognitizeGestureDown(gDownHandImg, this->mStdDownPointArea, ROIDOWN, handStatus,KnockNumber);
     return PT_RET_OK;
 }
 

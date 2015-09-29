@@ -661,7 +661,7 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
     return PT_RET_OK;
 }
 
-PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,bool IsLongTimeKnocK)
+PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int& KnockNumber)
 {
 #ifdef _SHOW_
     gHandID++;
@@ -691,68 +691,45 @@ PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const 
     _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
 
 	static Mat MaskOfKnockStaticUp ;
-	if(IsLongTimeKnocK){//Hand put on the knock in long time,return the reconnitize result on every frame
-		if(hand.empty() || area/stdKnockBaseArea>0.8) {
-		   PTDEBUG("didn't detected hand\n");
-		   MaskOfKnockStaticUp = knockMask;
-		   handStatus = HAND_STATUS_COUNT;
-		} else {
-		   PTDEBUG("detected hand, next step is recognize it's gesture...");
+	static bool StartToDetectKnockEnd = false;
+	static int NumberOfKnock = 0;
+	KnockNumber = -1;
+	if(hand.empty() || area/stdKnockBaseArea>0.8) {
+		stdKnockBaseArea = area;
+		PTDEBUG("didn't detected hand\n");
+		//std::cout<<StartToDetectKnockEnd<<" "<<handStatus <<endl;
+		MaskOfKnockStaticUp = knockMask;
+		if(StartToDetectKnockEnd){
+        	StartToDetectKnockEnd = false;
+			handStatus = HAND_KNOCK_END;
+			NumberOfKnock++;
+		} else{
+		handStatus = HAND_STATUS_COUNT;
+		}
+	} else {
+		PTDEBUG("detected hand, next step is recognize it's gesture...");
 
-		   Mat SkinAboveOnKnock;
-		   int SumOfSkinPixel = 0;
-		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticUp);
-		   for(int i = 0 ;i <skinMask.rows;i++){
-			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
-			   for(int j =0; j<skinMask.cols;j++){
-				   if(pData[j] == 255){
-					   SumOfSkinPixel++;
-				   }
-			   }
-		   }
-#ifdef _SHOW_
-		    imshow("SKINABOVE",SkinAboveOnKnock);
-#endif
-		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
-		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
-		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
-			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-		   } else{
-			   handStatus = HAND_STATUS_COUNT;
-		   }
+		Mat SkinAboveOnKnock;
+		int SumOfSkinPixel = 0;
+		skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticUp);
+		for(int i = 0 ;i <skinMask.rows;i++){
+			uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+			for(int j =0; j<skinMask.cols;j++){
+				if(pData[j] == 255){
+					SumOfSkinPixel++;
+				}
+			}
 		}
-	} else { //return the result only once when the hand put on the konck point
-		static bool startDetectHandUp = true;
-		if(hand.empty() || area/stdKnockBaseArea>0.8) {
-		   PTDEBUG("didn't detected hand\n");
-		   MaskOfKnockStaticUp = knockMask;
-		   startDetectHandUp = true;
-		   handStatus = HAND_STATUS_COUNT;
-		} else if(startDetectHandUp){
-		   PTDEBUG("detected hand, next step is recognize it's gesture...");
-		   Mat SkinAboveOnKnock;
-		   int SumOfSkinPixel = 0;
-		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticUp);
-		   for(int i = 0 ;i <skinMask.rows;i++){
-			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
-			   for(int j =0; j<skinMask.cols;j++){
-				   if(pData[j] == 255){
-					   SumOfSkinPixel++;
-				   }
-			   }
-		   }
 #ifdef _SHOW_
-		    imshow("SKINABOVE",SkinAboveOnKnock);
+		imshow("SKINABOVE",SkinAboveOnKnock);
 #endif
-		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
-		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
-		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
-			  startDetectHandUp = false;
-			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-		   } else{
-			   handStatus = HAND_STATUS_COUNT;
-		   }
-		}
+		//cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+		PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
+		if(SumOfSkinPixel / stdKnockBaseArea >0.3){
+			_getGesture(hand, handInfo, handStatus);//recognize fist or palm
+			StartToDetectKnockEnd = true;
+			KnockNumber = NumberOfKnock;
+		} 
 	}
 #ifdef _SHOW_
 	imshow("KnockMask",knockMask);
@@ -764,7 +741,7 @@ PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const 
     PTDEBUG("Exit %s ---> handStatus[%s]\n", __FUNCTION__, strHandGesture[handStatus]);
     return PT_RET_OK;
 }
-PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,bool IsLongTimeKnocK)
+PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int& KnockNumber)
 {
 #ifdef _SHOW_
     gHandID++;
@@ -794,68 +771,44 @@ PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, cons
     _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
 
 	static Mat MaskOfKnockStaticDown ;
-	if(IsLongTimeKnocK){//Hand put on the knock in long time,return the reconnitize result on every frame
-		if(hand.empty() || area/stdKnockBaseArea>0.8) {
-		   PTDEBUG("didn't detected hand\n");
-		   MaskOfKnockStaticDown = knockMask;
-		   handStatus = HAND_STATUS_COUNT;
-		} else {
-		   PTDEBUG("detected hand, next step is recognize it's gesture...");
+	static bool StartToDetectKnockEnd = false;
+	static int NumberOfKnock = 0;
+	KnockNumber = -1;
+	if(hand.empty() || area/stdKnockBaseArea>0.8) {
+		stdKnockBaseArea = area;
+		PTDEBUG("didn't detected hand\n");
+		MaskOfKnockStaticDown = knockMask;
+		if( StartToDetectKnockEnd ){
+        	StartToDetectKnockEnd = false;
+			handStatus = HAND_KNOCK_END;
+			NumberOfKnock++;
+		} else{
+		handStatus = HAND_STATUS_COUNT;
+		}
+	} else {
+		PTDEBUG("detected hand, next step is recognize it's gesture...");
 
-		   Mat SkinAboveOnKnock;
-		   int SumOfSkinPixel = 0;
-		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
-		   for(int i = 0 ;i <skinMask.rows;i++){
-			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
-			   for(int j =0; j<skinMask.cols;j++){
-				   if(pData[j] == 255){
-					   SumOfSkinPixel++;
-				   }
-			   }
-		   }
-#ifdef _SHOW_
-		    imshow("SKINABOVE",SkinAboveOnKnock);
-#endif
-		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
-		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
-		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
-			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-		   } else{
-			   handStatus = HAND_STATUS_COUNT;
-		   }
+		Mat SkinAboveOnKnock;
+		int SumOfSkinPixel = 0;
+		skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
+		for(int i = 0 ;i <skinMask.rows;i++){
+			uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+			for(int j =0; j<skinMask.cols;j++){
+				if(pData[j] == 255){
+					SumOfSkinPixel++;
+				}
+			}
 		}
-	} else { //return the result only once when the hand put on the konck point
-		static bool startDetectHandDown = true;
-		if(hand.empty() || area/stdKnockBaseArea>0.8) {
-		   PTDEBUG("didn't detected hand\n");
-		   MaskOfKnockStaticDown = knockMask;
-		   startDetectHandDown = true;
-		   handStatus = HAND_STATUS_COUNT;
-		} else if(startDetectHandDown){
-		   PTDEBUG("detected hand, next step is recognize it's gesture...");
-		   Mat SkinAboveOnKnock;
-		   int SumOfSkinPixel = 0;
-		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
-		   for(int i = 0 ;i <skinMask.rows;i++){
-			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
-			   for(int j =0; j<skinMask.cols;j++){
-				   if(pData[j] == 255){
-					   SumOfSkinPixel++;
-				   }
-			   }
-		   }
 #ifdef _SHOW_
-		    imshow("SKINABOVE",SkinAboveOnKnock);
+		imshow("SKINABOVE",SkinAboveOnKnock);
 #endif
-		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
-		   PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
-		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
-			  startDetectHandDown = false;
-			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-		   } else{
-			   handStatus = HAND_STATUS_COUNT;
-		   }
-		}
+		//cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+		PTDEBUG("SumOfSkinPixel[%f]\n", SumOfSkinPixel / stdKnockBaseArea);
+		if(SumOfSkinPixel / stdKnockBaseArea >0.3){
+			_getGesture(hand, handInfo, handStatus);//recognize fist or 
+			StartToDetectKnockEnd = true;
+			KnockNumber = NumberOfKnock;
+		} 
 	}
 #ifdef _SHOW_
 	imshow("KnockMask",knockMask);

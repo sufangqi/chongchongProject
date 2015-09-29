@@ -12,8 +12,8 @@ public:
     //check wether the knock point is put corect
     PTS32 getKnockPointStatus(PTBOOL& isTapPointCorrect);
     PTS32 studyTwoKnockBase(void);
-    PTS32 getUpHandGesture(PTHandStatus& handStatus,bool IsLongTimeKnock = true);
-    PTS32 getDownHandGesture(PTHandStatus& handStatus,bool IsLongTimeKnock = true);
+    PTS32 getUpHandGesture(PTHandStatus& handStatus,int &KnockNumber);
+    PTS32 getDownHandGesture(PTHandStatus& handStatus,int &KnockNumber);
     
     //BOOL check_knock_point;
     PTBOOL mIsUpTapPointInited;

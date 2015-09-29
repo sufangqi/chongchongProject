@@ -96,7 +96,8 @@ int main(int argc, char *argv[])
     }
 
     PTHandStatus handStatus = HAND_STATUS_COUNT;
-    recognitor.getUpHandGesture(handStatus);
+	int KnockNumberUp = -1;
+    recognitor.getUpHandGesture(handStatus,KnockNumberUp);
     PTDEBUG("recognized UP hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
@@ -108,32 +109,39 @@ int main(int argc, char *argv[])
                 putText(dispImg, "Up Fist Knock ON !", Point(10,40), FONT_HERSHEY_PLAIN, fontScale, Scalar(0,0,255), 2);
                 //logoFist.copyTo(frame(Rect(FONT_HERSHEY_PLAIN0, 60, logoFist.cols, logoFist.rows)));
                 break;
-           case HAND_STATUS_COUNT :
-               // putText(dispImg, "Up Hand didn't Knock ON !", Point(10,40), FONT_HERSHEY_PLAIN, fontScale, Scalar(0,0,255), 2);
+           case HAND_STATUS_COUNT  :
+                putText(dispImg, " Do Not Knock On!", Point(10,40), FONT_HERSHEY_PLAIN, fontScale, Scalar(0,0,255), 2);
                 break;
+		  case HAND_KNOCK_END:
+               putText(dispImg, "KNOCK ON END!", Point(10,40), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
+               break;
            default                :
-                putText(dispImg, "Up Hand ERROR !", Point(10,40), FONT_HERSHEY_PLAIN, fontScale, Scalar(0,0,255), 2);
+               // putText(dispImg, "Up Hand ERROR !", Point(10,40), FONT_HERSHEY_PLAIN, fontScale, Scalar(0,0,255), 2);
                 break;
     }
 #endif
     handStatus = HAND_STATUS_COUNT;
-    recognitor.getDownHandGesture(handStatus);
+	int KnockNumberDown = -1;
+    recognitor.getDownHandGesture(handStatus,KnockNumberDown);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
           case PALM_ON            :
-               putText(dispImg, "Down Plam Knock ON !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
+              putText(dispImg, "Down Plam Knock ON !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
                //logoPalm.copyTo(dispImg(Rect(20, dispImg.rows-logoPalm.rows-40, logoPalm.cols, logoPalm.rows)));
                break;
           case FIST_ON            :
                putText(dispImg, "Down Fist Knock ON !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
                //logoFist.copyTo(dispImg(Rect(20, dispImg.rows-logoFist.rows-40, logoFist.cols, logoFist.rows)));
                break;
-          case HAND_STATUS_COUNT  :
-             //  putText(dispImg, "Down Hand didn't Knock ON !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
+          case HAND_STATUS_COUNT:
+               putText(dispImg, "Do Not Knock On!", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
+               break;
+		 case HAND_KNOCK_END:
+               putText(dispImg, "KNOCK ON END", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, Scalar(0,0,255), 2);
                break;
           default                 :
-               putText(dispImg, "Down Hand ERROR !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
+               //putText(dispImg, "Down Hand ERROR !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
                break;
     }
 	resize(dispImg,dispImg,Size(640,480));
