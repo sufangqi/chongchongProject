@@ -729,7 +729,9 @@ PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const 
 			_getGesture(hand, handInfo, handStatus);//recognize fist or palm
 			StartToDetectKnockEnd = true;
 			KnockNumber = NumberOfKnock;
-		} 
+		} else{
+			handStatus = HAND_STATUS_COUNT;
+		}
 	}
 #ifdef _SHOW_
 	imshow("KnockMask",knockMask);
@@ -808,7 +810,9 @@ PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, cons
 			_getGesture(hand, handInfo, handStatus);//recognize fist or 
 			StartToDetectKnockEnd = true;
 			KnockNumber = NumberOfKnock;
-		} 
+		} else {
+			handStatus = HAND_STATUS_COUNT;
+		}
 	}
 #ifdef _SHOW_
 	imshow("KnockMask",knockMask);

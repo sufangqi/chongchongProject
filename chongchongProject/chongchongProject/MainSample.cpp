@@ -5,7 +5,7 @@
 using namespace std;
 using namespace cv;
 #define _SHOW_
-//#define _READ_IMAGE_
+#define _READ_IMAGE_
 #ifdef _SHOW_
  Mat dispImg;
 #endif
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 //  Mat logoFist = imread("fist.png");
 
   VideoCapture cap;
-  int imageNum=164;
+  int imageNum=02;
   cap.open(argv[1]);
   if(!cap.isOpened()) {
      PTDEBUG("VideoCapture is not opened!\n");
@@ -43,10 +43,10 @@ int main(int argc, char *argv[])
 #endif
 #ifdef _READ_IMAGE_
 	char image_name[20]={""};
-	sprintf_s(image_name,"img_0%d.jpg",imageNum++);
+	sprintf_s(image_name,"bug14435264%d.png",imageNum++);
 	string image_name_string=image_name;
-	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片3\\"+image_name_string);
-	
+	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片4\\"+image_name_string);
+	cvtColor(frame,frame,CV_RGB2BGR);
 #endif
     if(frame.empty()) {
        PTDEBUG("Cannot grap the frame!\n");
@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
        PTDEBUG("frame.cols[%d], frame.rows[%d]\n", frame.cols, frame.rows);
     }
 #ifdef _READ_IMAGE_//reverse clockwise roate the image 90 degree
-	transpose(frame,frame);
-    flip(frame,frame,0);
+	/*transpose(frame,frame);
+    flip(frame,frame,0);*/
 #endif
     if(PT_RET_OK != recognitor.init(frame.data, frame.cols, frame.rows, PT_IMG_BGR888)) {
        PTDEBUG("init failed!\n");

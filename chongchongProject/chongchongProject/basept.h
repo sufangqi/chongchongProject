@@ -118,8 +118,8 @@ typedef struct _TangramInitData {
 typedef enum _HandStatus {
    PALM_ON = 0,
    FIST_ON = 1,
-   HAND_STATUS_COUNT,
    HAND_KNOCK_END,
+   HAND_STATUS_COUNT,
 } PTHandStatus;
 
 const char strHandGesture[HAND_STATUS_COUNT+1][MAX_STRING_LENGTH] = {
