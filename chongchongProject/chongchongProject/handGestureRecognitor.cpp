@@ -6,8 +6,9 @@
 #define  DISP_WINDOW   "dispImg"
 Mat dispImg;
 #endif
-#define USE_ON_PAD
 //unsigned int gHandID = 0;
+
+#define VideoMode
 
 //FIXME: SHIT global varible
 Mat gUpHandImg;
@@ -29,15 +30,16 @@ HandGestureRecognitor::~HandGestureRecognitor()
 
 PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PTImageFormatEnum eFormat)
 {
-#ifdef  USE_ON_PAD
-    if(pPixels==NULL || nWidth!=1280 || nHeight!=960) {
-       PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
-       return PT_RET_INVALIDPARAM;
-    }
-#else
+#ifdef VideoMode
     if(pPixels==NULL || nWidth!=1280 || nHeight!=720) {
-       PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
-       return PT_RET_INVALIDPARAM;
+        PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
+        return PT_RET_INVALIDPARAM;
+    }
+    
+#else
+    if(pPixels==NULL || nWidth!=1280 || nHeight!=960) {
+        PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
+        return PT_RET_INVALIDPARAM;
     }
 #endif
 
@@ -51,13 +53,14 @@ PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PT
     resize(srcImg, topLeft, Size(srcImg.cols/2,srcImg.rows/2));
 #endif
 
-#ifdef  USE_ON_PAD
+#ifdef VideoMode
+    //1280x720 video as input
+    Mat subImg = srcImg(Rect(380, 0, 640, 720)).clone();
+    
+#else
     //integrated in iPad
     //Mat subImg = srcImg(Rect(380, 0, 580, 960)).clone();
     Mat subImg = srcImg(Rect(230, 0, 650, 960)).clone();
-#else
-    //1280x720 video as input
-    Mat subImg = srcImg(Rect(380, 0, 640, 720)).clone();
 #endif
 
     resize(subImg, subImg, Size(subImg.cols/4, subImg.rows/4));

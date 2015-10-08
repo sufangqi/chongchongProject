@@ -38,9 +38,9 @@ public:
 } HandInfo;
 
 //return the recognized result
-PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int &KnockNumber);
+PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double& stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int &KnockNumber);
 
-PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int &KnockNumber);
+PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double& stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int &KnockNumber);
 
 //extract the knock base
 PTS32 _getKnockBase(Mat& srcImg, const RoiLocation roiLocation, double& area, PTBOOL& isFinish);

@@ -3,6 +3,11 @@
 
 #include "basept.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <cstring>
+#include <iostream>
+
 class HandGestureRecognitor {
 public:
     HandGestureRecognitor();
@@ -12,6 +17,8 @@ public:
     //check wether the knock point is put corect
     PTS32 getKnockPointStatus(PTBOOL& isTapPointCorrect);
     PTS32 studyTwoKnockBase(void);
+    //PTS32 getUpHandGesture(PTHandStatus& handStatus,int &KnockNumber, std::string filename);
+    //PTS32 getDownHandGesture(PTHandStatus& handStatus,int &KnockNumber, std::string filename);
     PTS32 getUpHandGesture(PTHandStatus& handStatus,int &KnockNumber);
     PTS32 getDownHandGesture(PTHandStatus& handStatus,int &KnockNumber);
     

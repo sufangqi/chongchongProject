@@ -81,7 +81,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="handGestureRecognitor.cpp" />
-    <ClCompile Include="MainSample.cpp" />
+    <ClCompile Include="MainSampleTest.cpp" />
     <ClCompile Include="_convert.cpp" />
     <ClCompile Include="_utils.cpp" />
   </ItemGroup>

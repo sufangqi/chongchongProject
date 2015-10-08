@@ -5,7 +5,7 @@
 using namespace std;
 using namespace cv;
 #define _SHOW_
-#define _READ_IMAGE_
+//#define _READ_IMAGE_
 #ifdef _SHOW_
  Mat dispImg;
 #endif
