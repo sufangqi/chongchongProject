@@ -30,11 +30,11 @@ const char strROILocation[ROICNT+1][MAX_STRING_LENGTH] = {
 typedef class _HandInfo
 {
 public:
-   _HandInfo() {ratio_hull_handarea = 0.0f; Thumb = 0.0f;}
-   _HandInfo(double _ratio_hull_handarea, double _Thumb) {ratio_hull_handarea = _ratio_hull_handarea; Thumb = _Thumb;}
+   _HandInfo() {ratio_hull_handarea = 0.0f; Thumb = 0;}
+   _HandInfo(double _ratio_hull_handarea, int _Thumb) {ratio_hull_handarea = _ratio_hull_handarea; Thumb = _Thumb;}
 
    double ratio_hull_handarea;
-   double Thumb;
+   int Thumb;
 } HandInfo;
 
 //return the recognized result

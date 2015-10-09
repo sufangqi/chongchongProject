@@ -531,13 +531,13 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
 	         double LengthOfHandcenterAndthumbFar = pow(thumbContour[2].x-handCenter.x,2);
 			// cout<<LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar<<"rect.height / rect.width "<<(double)rect.height / rect.width<<endl;
              // if the handCenter is in the right of thumb rect origin
-			 if( (double)rect.height / rect.width < 1.2 || LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar >10) {
-				handInfo.Thumb = 0.0f;
+			 if( (double)rect.height / rect.width < 1.2 || LengthOfHandcenterAndthumb / LengthOfHandcenterAndthumbFar >10) {
+				handInfo.Thumb = 0;
 			  } else {
-				  handInfo.Thumb = 1.0f;
+				  handInfo.Thumb = 1;
 			         } 
           } else {
-            handInfo.Thumb = 1.0f;
+            handInfo.Thumb = 1;
           }
        }
    } else {
@@ -650,7 +650,7 @@ PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double& stdKnockBaseArea, const
 #endif
     
     Mat hand;
-    HandInfo handInfo = HandInfo(0.0f, 0.0f);
+    HandInfo handInfo = HandInfo(0.0f, 0);
     _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
     Mat knockMask(handImg.size(), CV_8UC1);
     _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
@@ -755,7 +755,7 @@ PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double& stdKnockBaseArea, con
 #endif
 
     Mat hand;
-    HandInfo handInfo = HandInfo(0.0f, 0.0f);
+    HandInfo handInfo = HandInfo(0.0f, 0);
     _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
     Mat knockMask(handImg.size(), CV_8UC1);
     _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
