@@ -1,5 +1,6 @@
-#include"handGestureRecognitor.h"
-#include"_utils.h"
+#include "handGestureRecognitor.h"
+#include "_utils.h"
+
 //#define _SHOW_
 #ifdef _SHOW_
 //global mat for display dubug
@@ -32,14 +33,13 @@ PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PT
 {
 #ifdef VideoMode
     if(pPixels==NULL || nWidth!=1280 || nHeight!=720) {
-        PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
-        return PT_RET_INVALIDPARAM;
+       PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
+       return PT_RET_INVALIDPARAM;
     }
-    
 #else
     if(pPixels==NULL || nWidth!=1280 || nHeight!=960) {
-        PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
-        return PT_RET_INVALIDPARAM;
+       PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
+       return PT_RET_INVALIDPARAM;
     }
 #endif
 
@@ -56,7 +56,6 @@ PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PT
 #ifdef VideoMode
     //1280x720 video as input
     Mat subImg = srcImg(Rect(380, 0, 640, 720)).clone();
-    
 #else
     //integrated in iPad
     //Mat subImg = srcImg(Rect(380, 0, 580, 960)).clone();
@@ -75,7 +74,7 @@ PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PT
     Mat topRightDown = dispImg(Rect(dispImg.cols/2, gUpHandImg.rows, gDownHandImg.cols, gDownHandImg.rows));
     resize(gDownHandImg, topRightDown, gDownHandImg.size());
     imshow(DISP_WINDOW, dispImg);
-	waitKey(0);
+    waitKey(0);
 #endif
 
     return PT_RET_OK;
@@ -172,17 +171,17 @@ PTS32 HandGestureRecognitor::studyTwoKnockBase(void)
     return PT_RET_OK;
 }
 
-PTS32 HandGestureRecognitor::getUpHandGesture(PTHandStatus& handStatus,int &KnockNumber)
+PTS32 HandGestureRecognitor::getUpHandGesture(PTHandStatus& handStatus, int& KnockNumber)
 {
-    _getHandRecognitizeGestureUp(gUpHandImg, this->mStdUpPointArea, ROIUP, handStatus,KnockNumber);
+    _getHandRecognitizeGestureUp(gUpHandImg, this->mStdUpPointArea, ROIUP, handStatus, KnockNumber);
     return PT_RET_OK;
 }
 
-PTS32 HandGestureRecognitor::getDownHandGesture(PTHandStatus& handStatus,int &KnockNumber)
+PTS32 HandGestureRecognitor::getDownHandGesture(PTHandStatus& handStatus, int& KnockNumber)
 {
     //flipping around the x-axis
     flip(gDownHandImg, gDownHandImg, 0);
-    _getHandRecognitizeGestureDown(gDownHandImg, this->mStdDownPointArea, ROIDOWN, handStatus,KnockNumber);
+    _getHandRecognitizeGestureDown(gDownHandImg, this->mStdDownPointArea, ROIDOWN, handStatus, KnockNumber);
     return PT_RET_OK;
 }
 

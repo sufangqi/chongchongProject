@@ -7,7 +7,6 @@
 #define USE_SKIN_COLOR_DIFF
 #ifdef _SHOW_
 extern Mat dispImg;
-unsigned int gHandID;
 #endif
 
 
@@ -40,64 +39,7 @@ static const int KNOCKRANGE[2][6] = {
 };
 
 static vector<int> vKnockArea;
-PTS32 _greyWorldCC(cv::Mat& srcImg)
-{
-   PTDEBUG("Enter %s\n", __FUNCTION__);
 
-#ifdef _SHOW_
-   imshow("before grey cc", srcImg);
-#endif
-
-   double whiteB = 0.0f;
-   double whiteG = 0.0f;
-   double whiteR = 0.0f;
-
-   const int channels = srcImg.channels();
-   int rows = srcImg.rows;
-   int cols = srcImg.cols*channels;
-
-   if(srcImg.isContinuous()) {
-      cols = rows*cols;
-      rows = 1;
-   }
-
-   for(int i = 0; i < rows; i++) {
-     uchar *pRow = srcImg.ptr<uchar>(i);
-     for(int j = 0; j < cols; j+=channels) {
-         whiteB += pRow[j];
-         whiteG += pRow[j+1];
-         whiteR += pRow[j+2];
-     }
-   }
-
-
-   double sum = sqrt(whiteB*whiteB + whiteG*whiteG + whiteR*whiteR);
-
-   whiteB = whiteB/sum;
-   whiteG = whiteG/sum;
-   whiteR = whiteR/sum;
-
-   PTDEBUG("white point(%f, %f, %f)\n", whiteR, whiteG, whiteB);
-
-   whiteB = whiteB*sqrt(3.0f);
-   whiteG = whiteG*sqrt(3.0f);
-   whiteR = whiteR*sqrt(3.0f);
-
-   for(int i = 0; i < rows; i++) {
-     uchar *pRow = srcImg.ptr<uchar>(i);
-     for(int j = 0; j < cols; j+=channels) {
-         pRow[j]   = cv::saturate_cast<uchar>(pRow[j]/whiteB);
-         pRow[j+1] = cv::saturate_cast<uchar>(pRow[j+1]/whiteG);
-         pRow[j+2] = cv::saturate_cast<uchar>(pRow[j+2]/whiteR);
-     }
-   }
-
-#ifdef _SHOW_
-   imshow("after grey cc", srcImg);
-#endif
-
-   return PT_RET_OK;
-}
 PTS32  _getKnockBase(Mat& srcImg, const RoiLocation roiLocation, double& area, PTBOOL& isFinish)
 {
     PTDEBUG("Enter %s\n", __FUNCTION__);
@@ -128,6 +70,7 @@ PTS32  _getKnockBase(Mat& srcImg, const RoiLocation roiLocation, double& area, P
     PTDEBUG("Exit %s\n", __FUNCTION__);
     return PT_RET_OK;
 }
+
 static PTS32 _mvgetSkinMask(Mat& srcImg, Mat& dstImg, double threshold)//skin detection using skin model.threshold represent threshold of skin
 {
     Mat hsvImg(srcImg.size(), CV_8UC3);
@@ -206,10 +149,11 @@ static PTS32 _mvgetSkinMaskOtsu(Mat& srcImg, Mat& dstImg)//skin detection using 
             const float satVal = pSat[j];
             const int hueIdx = (int)floor(hueVal/180.0f*16.0f);
             const int satIdx = (int)floor(satVal/255.0f*8.0f);
-			pDst[j] = SKINMODEL[hueIdx][satIdx]*256;
+            pDst[j] = SKINMODEL[hueIdx][satIdx]*256;
         }
     }
-	threshold(dstImg,dstImg,0,255,CV_THRESH_OTSU);
+
+    threshold(dstImg, dstImg, 0, 255, CV_THRESH_OTSU);
     erode(dstImg, dstImg, Mat());
     medianBlur(dstImg, dstImg, 3);
 
@@ -225,7 +169,7 @@ static PTS32 _getSkinMask(Mat& srcImg, Mat& dstImg)
     vector<Mat> yCrCb;
     split(tempImg, yCrCb);
     Mat imgCr = yCrCb[1];
-	
+
     int rows = imgCr.rows;
     int cols = imgCr.cols*imgCr.channels();
     const int channels = imgCr.channels();
@@ -251,49 +195,52 @@ static PTS32 _getSkinMask(Mat& srcImg, Mat& dstImg)
 
     return PT_RET_OK;
 }
-static PTS32 SkinDetectionBasedOnColorDiff(Mat& SrcImg,Mat &DstImg)
+
+static PTS32 SkinDetectionBasedOnColorDiff(Mat& srcImg, Mat& dstImg)
 {
-	if(SrcImg.channels() != 3){
-	    PTDEBUG("Error in SkinDetectionBasedOnColorDiff .The Input Image's channel must be 3");
-		 return PT_RET_INVALIDPARAM;
-	}
-	    vector<Mat> YCrCb;
-		Mat YcbcrImg;
-	
-		cvtColor(SrcImg,YcbcrImg,CV_BGR2YCrCb);
-		split(YcbcrImg,YCrCb);
-		Mat imgCr=YCrCb[1];
-		Mat imgCb=YCrCb[2];
+    if(srcImg.channels() != 3){
+       PTDEBUG("Error in SkinDetectionBasedOnColorDiff .The Input Image's channel must be 3");
+       return PT_RET_INVALIDPARAM;
+    }
 
-		Mat Dst(imgCr.size(),CV_32F);
-        int rows = imgCr.rows;
-		int cols = imgCr.cols*imgCr.channels();
-		const int channels=imgCr.channels();
-	
-		if(imgCr.isContinuous() && Dst.isContinuous()){
-			cols=cols*rows;
-			rows = 1;
-		}
+    vector<Mat> YCrCb;
+    Mat YcbcrImg;
 
-		for(int i = 0;i < rows;i++){
-		   uchar *pCr = imgCr.ptr<uchar>(i);
-		   uchar *pCb = imgCb.ptr<uchar>(i);
-		   float *pDst = Dst.ptr<float>(i);
-		   for(int j = 0;j < cols; j++){
-			   if(pCr[j] - pCb[j] < 17)
-				   pDst[j] = 0;
-			   else
-				   pDst[j] = pCr[j] - pCb[j];
-		   }
-		}
-		normalize(Dst,Dst,255,0,NORM_MINMAX);
+    cvtColor(srcImg, YcbcrImg, CV_BGR2YCrCb);
+    split(YcbcrImg, YCrCb);
+    Mat imgCr = YCrCb[1];
+    Mat imgCb = YCrCb[2];
 
-		
-		Dst.convertTo(DstImg,CV_8UC1);
-		threshold(DstImg,DstImg,0,255,CV_THRESH_OTSU);
-		dilate(DstImg,DstImg,Mat());
-		return PT_RET_OK;
+    Mat dst(imgCr.size(), CV_8UC1);
+    int rows = imgCr.rows;
+    int cols = imgCr.cols * imgCr.channels();
+    const int channels = imgCr.channels();
+
+    if(imgCr.isContinuous() && dst.isContinuous()) {
+       cols = cols * rows;
+       rows = 1;
+    }
+
+    for(int i = 0;i < rows;i++){
+       uchar *pCr = imgCr.ptr<uchar>(i);
+       uchar *pCb = imgCb.ptr<uchar>(i);
+       uchar *pDst= dst.ptr<uchar>(i);
+       for(int j = 0;j < cols; j++){
+          if(pCr[j] - pCb[j] < 17) {
+             pDst[j] = 0;
+          } else {
+             pDst[j] = pCr[j] - pCb[j];
+          }
+       }
+    }
+
+    normalize(dst, dstImg, 255, 0, NORM_MINMAX);
+
+    threshold(dstImg, dstImg, 0, 255, CV_THRESH_OTSU);
+
+    return PT_RET_OK;
 }
+
 //knock point detection in HSV space, using Hue and Saturation
 PTS32 _getKnockMask(Mat& srcImg, Mat& dstImg, const RoiLocation roiLocation)
 {
@@ -356,7 +303,7 @@ static PTS32 _getContourCenter(const vector<Point>& contour, Point& center)
 
    center.x = (int)cvRound(m10/(m00+DBL_MIN));
    center.y = (int)cvRound(m01/(m00+DBL_MIN));
- 
+
    return PT_RET_OK;
 }
 
@@ -412,62 +359,48 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
        const vector<Point> maxContour = contours[maxIdx];
 
        Rect handRect = boundingRect(maxContour);
-       //const double perimeter = arcLength(maxContour, true);
-
-       //RotatedRect box = minAreaRect(maxContour);
-       //Point2f vertex[4];
-       //box.points(vertex);
-       //const double width  = pow((vertex[1].x-vertex[2].x), 2.0f) + pow((vertex[1].y-vertex[2].y), 2.0f);
-       //const double height = pow((vertex[1].x-vertex[0].x), 2.0f) + pow((vertex[1].y-vertex[0].y), 2.0f);
-       //const double widthHeightRatio = width/height;
 
        Point handCenter;
        _getContourCenter(maxContour, handCenter);
-      // const Point center_gravy = Point(handCenter.x+handRect.x, handCenter.y+handRect.y);//TODO think again
+	   
+	   vector<Point> TrajectoryLeft;
+	   for(size_t i = 0;i < maxContour.size();i++){
+		   if(maxContour[i].x <= handCenter.x){
+			   TrajectoryLeft.push_back(maxContour[i]);
+		   }
+	   }
 
-	   hand = gray(Rect(handRect.x, handRect.y, handRect.width*3/5, handRect.height));
-     
-
+	   vector<Point> PloyCurve;
+	   approxPolyDP(TrajectoryLeft,PloyCurve,6,true);
+	   vector<Point> gearNum;
+	   for(int i = 1;(i < PloyCurve.size() - 1) && (PloyCurve.size() >=3); i++){
+		   Point PrePoint = PloyCurve[i-1];
+		   Point CurPoint = PloyCurve[i];
+		   Point LastPoint = PloyCurve[i+1];
+		   int coss = (PrePoint.x - CurPoint.x) * (LastPoint.y - CurPoint.y) - (LastPoint.x - CurPoint.x) * (PrePoint.y - CurPoint.y);
+		   if(coss < 0){
+			   gearNum.push_back(CurPoint);
+		   }
+	   }
 #ifdef _SHOW_
-       //Mat draw(skinArea.size(), CV_8UC3);
-       //cvtColor(skinArea, draw, CV_GRAY2BGR);
-
-       //circle(draw, handCenter, 4, CV_RGB(0,255,0));
-       //circle(draw, center_gravy, 4, CV_RGB(255,0,0));
-
-       //Mat topRightUp;
-       //if(gHandID%2 == 0) {
-       //   //up hand
-       //  // topRightUp = dispImg(Rect(dispImg.cols/2+skinArea.cols*3, skinArea.rows, skinArea.cols, skinArea.rows));
-       //} else {
-       //   //down hand
-       //   //topRightUp = dispImg(Rect(dispImg.cols/2+skinArea.cols*3, 0, skinArea.cols, skinArea.rows));
-       //}
-
-       //resize(draw, topRightUp, skinArea.size());
+	   Mat DrawContoursShow=Mat::zeros(skinArea.size(),CV_8UC3);
+	   vector<vector<Point>> tmp;
+	   tmp.push_back(TrajectoryLeft);
+	   drawContours(DrawContoursShow,tmp,0,Scalar(255));
+	   for(size_t i = 0; i <gearNum.size();i++){
+		   circle(DrawContoursShow,gearNum[i],3,Scalar(0,0,255),2);
+	   }
+ 	   for(vector<Point>::const_iterator itp = PloyCurve.begin(); itp != PloyCurve.end()-1;itp++){
+		    Scalar color( 255,255,0 );
+		   line(DrawContoursShow,*itp,*(itp+1),color,2);
+	   }
+	   imshow("DrawContoursShow",DrawContoursShow);
 #endif
 
-      
-#ifdef _SHOW_
-     //  draw = Mat::zeros(skinArea.size(),CV_8UC3);
-     //  vector<vector<Point>> contours;
-       //only one contour
-      // contours.push_back(hullContour);
-       //if(gHandID%2 == 0) {
-       //   //up hand
-       //   drawContours(draw, contours, -1/*all*/, CV_RGB(0,255,0), 2);
-       //   topRightUp = dispImg(Rect(dispImg.cols/2, skinArea.rows*3, skinArea.cols, skinArea.rows));
-       //} else {
-       //   //down hand
-       //   drawContours(draw, contours, -1/*all*/, CV_RGB(0,0,255), 2);
-       //   topRightUp = dispImg(Rect(dispImg.cols/2, skinArea.rows*2, skinArea.cols, skinArea.rows));
-       //}
-       //gHandID++;
 
-       //resize(draw, topRightUp, skinArea.size());
-#endif
+       hand = gray(Rect(handRect.x, handRect.y, handRect.width*3/5, handRect.height));
 
-	   vector<int> hull;
+       vector<int> hull;
        convexHull(maxContour, hull, true/*clockwise*/);
        //wether the thumb is exist
        if(Mat(maxContour).checkVector(2, CV_32S) > 3) {
@@ -481,16 +414,16 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
               const int startIdx = defects[i][0];
               const Point ptStart(maxContour[startIdx]); // point of the contour where the defect begins
 
-              const int endIdx = defects[i][1]; 
+              const int endIdx = defects[i][1];
               const Point ptEnd(maxContour[endIdx]); // point of the contour where the defect ends
 
               const int farIdx = defects[i][2];
               const Point ptFar(maxContour[farIdx]);// the farthest from the convex hull point within the defect
 
-			  const double depth = defects[i][3] / handRect.width; // distance between the farthest point and the convex hull
+              const double depth = defects[i][3]/handRect.width; // distance between the farthest point and the convex hull
               //The thumb area constraints,TODO
-              //if(depth>20.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>50 && (skinArea.cols-ptEnd.x)>10) {
-              if(depth>20.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>30 && (skinArea.cols-ptEnd.x)>10) {
+              //if(depth>20.0f and (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) and (ptFar.y-handRect.y)>50 and (skinArea.cols-ptEnd.x)>10) {
+              if(depth>15.0f && (ptFar.x>ptEnd.x||ptFar.x>ptStart.x) && (ptFar.y-handRect.y)>30 && (skinArea.cols-ptEnd.x)>10) {
                 if(ptEnd.y > farY) {
                    farY = ptFar.y;
                    thumbIndex = i;
@@ -514,28 +447,28 @@ static PTS32 _getHandInfo(Mat& skinArea, Mat& hand, HandInfo& handInfo)
              Rect rect = boundingRect(thumbContour);
 
  #ifdef _SHOW_
-          static int handID = 0;
-          Mat show(skinArea.size(), CV_8UC3);
-          cvtColor(skinArea, show, CV_GRAY2BGR);
+             static int handID = 0;
+             Mat show(skinArea.size(), CV_8UC3);
+             cvtColor(skinArea, show, CV_GRAY2BGR);
 
-         // circle(show, handCenter, 4, CV_RGB(0,255,0));
-		  circle( show, thumbContour[0],   4, Scalar(255,0,100), 2 );  
-		  circle( show, thumbContour[1],   4, Scalar(255,0,100), 2 );  
-		  circle( show, thumbContour[2],   4, Scalar(100,0,255), 2 );
-		  rectangle(show,rect,Scalar(255),2);
-          imshow(" thumb", show);
-	   // cvWaitKey(0);
-       handID++;
+             circle(show, handCenter, 4, CV_RGB(0,255,0));
+             circle( show, thumbContour[0],   4, Scalar(255,0,100), 2 );
+             circle( show, thumbContour[1],   4, Scalar(255,0,100), 2 );
+             circle( show, thumbContour[2],   4, Scalar(100,0,255), 2 );
+             rectangle(show,rect,Scalar(255),2);
+             imshow(" thumb", show);
+             // cvWaitKey(0);
+             handID++;
 #endif
-	         double LengthOfHandcenterAndthumb = pow(thumbContour[0].x-handCenter.x,2)+pow(thumbContour[0].y-handCenter.y,2);
-	         double LengthOfHandcenterAndthumbFar = pow(thumbContour[2].x-handCenter.x,2);
-			// cout<<LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar<<"rect.height / rect.width "<<(double)rect.height / rect.width<<endl;
+             double LengthOfHandcenterAndthumb = pow(thumbContour[0].x-handCenter.x,2)+pow(thumbContour[0].y-handCenter.y,2);
+             double LengthOfHandcenterAndthumbFar = pow(thumbContour[2].x-handCenter.x,2);
+            // cout<<LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar<<"rect.height / rect.width "<<(double)rect.height / rect.width<<endl;
              // if the handCenter is in the right of thumb rect origin
-			 if( (double)rect.height / rect.width < 1.2 || LengthOfHandcenterAndthumb / LengthOfHandcenterAndthumbFar >10) {
-				handInfo.Thumb = 0;
-			  } else {
-				  handInfo.Thumb = 1;
-			         } 
+             if((double)rect.height / rect.width < 1.2 || LengthOfHandcenterAndthumb/LengthOfHandcenterAndthumbFar >10) {
+                handInfo.Thumb = 0;
+              } else {
+                handInfo.Thumb = 1;
+              }
           } else {
             handInfo.Thumb = 1;
           }
@@ -558,7 +491,7 @@ PTF64 _calcLineYAngle(const Point& start,const Point& end)
 
 static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& handStatus)
 {
-    PTDEBUG("Enter %s, handInfo.Thumb[%f], handInfo.ratio_hull_handarea[%f]\n", __FUNCTION__, handInfo.Thumb, handInfo.ratio_hull_handarea);
+    PTDEBUG("Enter %s, handInfo.Thumb[%d], handInfo.ratio_hull_handarea[%f]\n", __FUNCTION__, handInfo.Thumb, handInfo.ratio_hull_handarea);
 
     const int step = 3;
     const int lineCount = 10;
@@ -599,8 +532,7 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
     const Scalar meanvalue = mean(fingerNum);
     const int finger = meanvalue(0);
 
-    PTDEBUG("finger[%d], handInfo.Thumb[%f], handInfo.ratio_hull_handarea[%f]\n", finger, handInfo.Thumb, handInfo.ratio_hull_handarea);
-	//printf_s("finger[%d], handInfo.Thumb[%f], handInfo.ratio_hull_handarea[%f]\n", finger, handInfo.Thumb, handInfo.ratio_hull_handarea);
+    PTDEBUG("finger[%d], handInfo.Thumb[%d], handInfo.ratio_hull_handarea[%f]\n", finger, handInfo.Thumb, handInfo.ratio_hull_handarea);
     //if number of finger is greater than 4,then palm
     if(finger > 3) {
        handStatus = PALM_ON;
@@ -608,11 +540,11 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
        //TODO, refine
        if(finger==0 && handInfo.Thumb == 1) {//if the number of finger is zero and thumb is greater than 0.6,then fist
           handStatus = FIST_ON;
-       }else if(handInfo.Thumb == 0)
-		   handStatus = PALM_ON;
-	   else
-		   handStatus = FIST_ON;
-
+       } else if(handInfo.Thumb == 0) {
+          handStatus = PALM_ON;
+       } else {
+          handStatus = FIST_ON;
+       }
     }
 
     PTDEBUG("Exit %s ---> handStatus[%d]\n", __FUNCTION__, handStatus);
@@ -620,12 +552,8 @@ static PTS32 _getGesture(Mat& hand, const HandInfo& handInfo, PTHandStatus& hand
     return PT_RET_OK;
 }
 
-PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double& stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int &KnockNumber)
+PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double& stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int& KnockNumber)
 {
-#ifdef _SHOW_
-    gHandID++;
-#endif
-    
 #ifdef WriteImg
     osPath = filename+"up.os.png";
 #endif
@@ -634,13 +562,42 @@ PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double& stdKnockBaseArea, const
 
     Mat skinMask(handImg.size(), CV_8UC1);
 
+    Mat hand;
+    Mat knockMask(handImg.size(), CV_8UC1);
+    _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
+
+    double area = 0.0f;
+    Point tmp;
+    _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
+
+    static Mat MaskOfKnockStaticUp = Mat::ones(knockMask.size(),CV_8UC1);
+    static bool StartToDetectKnockEnd = false;
+
+    KnockNumber = 0;
+    if( area/stdKnockBaseArea>0.8) {
+       PTDEBUG("didn't detected hand: data[%p], area[%f], stdKnockBaseArea[%f]\n", hand.data, area, stdKnockBaseArea);
+       if(area/stdKnockBaseArea > 0.8) {
+          stdKnockBaseArea = area;
+          //MaskOfKnockStaticUp = knockMask;
+          knockMask.copyTo(MaskOfKnockStaticUp);
+       }
+
+       if(StartToDetectKnockEnd) {
+          StartToDetectKnockEnd = false;
+          handStatus = HAND_KNOCK_END;
+          //NumberOfKnock++;
+       } else {
+          handStatus = HAND_STATUS_COUNT;
+       }
+    } else {
+       PTDEBUG("detected hand, next step is recognize it's gesture...");
 #ifdef ENABLEADPATIVESKINMOLDE
-    _mvgetSkinMask(handImg, skinMask, 0.75);
+     _mvgetSkinMask(handImg, skinMask, 0.75);
 #else
 #ifdef USE_SKIN_COLOR_DIFF
-	SkinDetectionBasedOnColorDiff(handImg,skinMask);
+     SkinDetectionBasedOnColorDiff(handImg, skinMask);
 #else
-    _getSkinMask(handImg, skinMask);
+     _getSkinMask(handImg, skinMask);
 #endif
 #endif
 
@@ -648,185 +605,162 @@ PTS32 _getHandRecognitizeGestureUp(Mat& handImg, double& stdKnockBaseArea, const
     imwrite(filename+".up.skinMask.src.png", handImg);
     imwrite(filename+".up.skinMask.dst.png", skinMask);
 #endif
-    
-    Mat hand;
-    HandInfo handInfo = HandInfo(0.0f, 0);
-    _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
-    Mat knockMask(handImg.size(), CV_8UC1);
-    _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
-    double area = 0.0f;
-    Point tmp;
-    _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
+	   HandInfo handInfo = HandInfo(0.0f, 0.0f);
+       _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
+       Mat SkinAboveOnKnock;
+       int SumOfSkinPixel = 0;
+       skinMask.copyTo(SkinAboveOnKnock, MaskOfKnockStaticUp);
 
-	static Mat MaskOfKnockStaticUp ;
-	static bool StartToDetectKnockEnd = false;
-	static int NumberOfKnock = 0;
-	KnockNumber = -1;
-	cout << area/stdKnockBaseArea <<endl;
-	if(hand.empty() || area/stdKnockBaseArea>0.8) {
-		
-		PTDEBUG("didn't detected hand: data[%p], area[%f], stdKnockBaseArea[%f]\n", hand.data, area, stdKnockBaseArea);
-        if (area/stdKnockBaseArea>0.8 ) {
-            stdKnockBaseArea = area;
-            knockMask.copyTo(MaskOfKnockStaticUp);
-        }
-       
-		if(StartToDetectKnockEnd){
-        	StartToDetectKnockEnd = false;
-			handStatus = HAND_KNOCK_END;
-			NumberOfKnock++;
-		} else{
-		handStatus = HAND_STATUS_COUNT;
-		}
-	} else {
-		PTDEBUG("detected hand, next step is recognize it's gesture...");
+#ifdef WriteImg
+       imwrite(filename+".up.png", skinMask);
+#endif
+       for(int i = 0 ; i < skinMask.rows; i++){
+           uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+           for(int j = 0; j < skinMask.cols; j++){
+               if(pData[j] == 255){
+                  SumOfSkinPixel++;
+               }
+           }
+       }
+#ifdef WriteImg
+       imwrite(filename+".up.png.png", SkinAboveOnKnock);
+#endif
 
-		   Mat SkinAboveOnKnock;
-		   int SumOfSkinPixel = 0;
-		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticUp);
-        
-#ifdef WriteImg
-        imwrite(filename+".up.png", skinMask);
-#endif
-		   for(int i = 0 ;i <skinMask.rows;i++){
-			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
-			   for(int j =0; j<skinMask.cols;j++){
-				   if(pData[j] == 255){
-					   SumOfSkinPixel++;
-				   }
-			   }
-		   }
-#ifdef WriteImg
-        imwrite(filename+".up.png.png", SkinAboveOnKnock);
-#endif
-        
 #ifdef _SHOW_
-		    imshow("SKINABOVE",SkinAboveOnKnock);
+       imshow("SKINABOVE", SkinAboveOnKnock);
 #endif
-		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
-		    PTDEBUG("SumOfSkinPixel[%f]------SumOfSkinPixel[%d], stdKnockBaseArea[%f]\n", SumOfSkinPixel / stdKnockBaseArea, SumOfSkinPixel, stdKnockBaseArea);
-		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
-			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-			StartToDetectKnockEnd = true;
-			KnockNumber = NumberOfKnock;
-		   } else{
-			   handStatus = HAND_STATUS_COUNT;
-		   }
-		}
+      //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+       PTDEBUG("SumOfSkinPixel[%f]------SumOfSkinPixel[%d], stdKnockBaseArea[%f]\n", SumOfSkinPixel / stdKnockBaseArea, SumOfSkinPixel, stdKnockBaseArea);
+       if(SumOfSkinPixel / stdKnockBaseArea > 0.3) {
+          _getGesture(hand, handInfo, handStatus);//recognize fist or palm
+          StartToDetectKnockEnd = true;
+          KnockNumber = 1;
+          //KnockNumber = NumberOfKnock;
+       } else{
+          handStatus = HAND_STATUS_COUNT;
+       }
+    }
+
 #ifdef _SHOW_
-	imshow("KnockMask",knockMask);
-	imshow("SkinMask",skinMask);
-	imshow("SKINAREAMASK",MaskOfKnockStaticUp);
+    Mat UpHandInfoShow(Size(knockMask.cols*3,knockMask.rows),CV_8UC1);
+	knockMask.copyTo(UpHandInfoShow(Rect(0,0,knockMask.cols,knockMask.rows)));
+	skinMask.copyTo(UpHandInfoShow(Rect(skinMask.cols,0,skinMask.cols,skinMask.rows)));
+	MaskOfKnockStaticUp.copyTo(UpHandInfoShow(Rect(MaskOfKnockStaticUp.cols*2,0,MaskOfKnockStaticUp.cols,MaskOfKnockStaticUp.rows)));
+	
+	imshow("UpHandInfoSHow",UpHandInfoShow);
 	if(!hand.empty()){
 	  imshow("Hand",hand);
 	}
 #endif
+
     PTDEBUG("Exit %s ---> handStatus[%s]\n", __FUNCTION__, strHandGesture[handStatus]);
     return PT_RET_OK;
 }
-PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double& stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int &KnockNumber)
+
+PTS32 _getHandRecognitizeGestureDown(Mat& handImg, double& stdKnockBaseArea, const RoiLocation roiLocation, PTHandStatus& handStatus,int& KnockNumber)
 {
-#ifdef _SHOW_
-    gHandID++;
-#endif
-    
 #ifdef WriteImg
     osPath = filename+"down.os.png";
 #endif
-    
+
     PTDEBUG("Enter %s\n", __FUNCTION__);
 
     Mat skinMask(handImg.size(), CV_8UC1);
 
-#ifdef ENABLEADPATIVESKINMOLDE
-    _mvgetSkinMask(handImg, skinMask, 0.75);
-#else
-#ifdef USE_SKIN_COLOR_DIFF
-	SkinDetectionBasedOnColorDiff(handImg,skinMask);
-#else
-    _getSkinMask(handImg, skinMask);
-#endif
-#endif
-    
-#ifdef WriteImg
-    imwrite(filename+".down.skinMask.src.png", handImg);
-    imwrite(filename+".down.skinMask.dst.png", skinMask);
-    
-#endif
-
     Mat hand;
-    HandInfo handInfo = HandInfo(0.0f, 0);
-    _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
+    
     Mat knockMask(handImg.size(), CV_8UC1);
     _getKnockMask(handImg, knockMask, roiLocation);//Extract the knock point using HSV
     double area = 0.0f;
     Point tmp;
     _getMaxContoursAreaCenter(knockMask, area, tmp);//Extract the area and the knock center
 
-	static Mat MaskOfKnockStaticDown ;
-	static bool StartToDetectKnockEnd = false;
-	static int NumberOfKnock = 0;
-	KnockNumber = -1;
-	if(hand.empty() || area/stdKnockBaseArea>0.8) {
-		
+    static Mat MaskOfKnockStaticDown = Mat::ones(knockMask.size(),CV_8UC1);;
+    static bool StartToDetectKnockEnd = false;
+    //static int NumberOfKnock = 0;
+    //KnockNumber = -1;
+    KnockNumber = 0;
+    if( area/stdKnockBaseArea>0.8) {
+
         PTDEBUG("didn't detected hand: data[%p], area[%f], stdKnockBaseArea[%f]\n", hand.data, area, stdKnockBaseArea);
         if (area/stdKnockBaseArea>0.8) {
             stdKnockBaseArea = area;
             //MaskOfKnockStaticDown = knockMask;
             knockMask.copyTo(MaskOfKnockStaticDown);
         }
-  
-		if( StartToDetectKnockEnd ){
-        	StartToDetectKnockEnd = false;
-			handStatus = HAND_KNOCK_END;
-			NumberOfKnock++;
-		} else{
-		handStatus = HAND_STATUS_COUNT;
-		}
-	} else {
-		PTDEBUG("detected hand, next step is recognize it's gesture...");
 
-		   Mat SkinAboveOnKnock;
-		   int SumOfSkinPixel = 0;
-		   skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
-        
+        if( StartToDetectKnockEnd ){
+            StartToDetectKnockEnd = false;
+            handStatus = HAND_KNOCK_END;
+            //NumberOfKnock++;
+        } else {
+            handStatus = HAND_STATUS_COUNT;
+        }
+    } else {
+        PTDEBUG("detected hand, next step is recognize it's gesture...");
+#ifdef ENABLEADPATIVESKINMOLDE
+    _mvgetSkinMask(handImg, skinMask, 0.75);
+#else
+#ifdef USE_SKIN_COLOR_DIFF
+    SkinDetectionBasedOnColorDiff(handImg,skinMask);
+#else
+    _getSkinMask(handImg, skinMask);
+#endif
+#endif
+
+#ifdef WriteImg
+    imwrite(filename+".down.skinMask.src.png", handImg);
+    imwrite(filename+".down.skinMask.dst.png", skinMask);
+#endif
+	    HandInfo handInfo = HandInfo(0.0f, 0.0f);
+        _getHandInfo(skinMask, hand, handInfo);//Extract the hand using YCrCb color space
+        Mat SkinAboveOnKnock;
+        int SumOfSkinPixel = 0;
+        skinMask.copyTo(SkinAboveOnKnock,MaskOfKnockStaticDown);
+
 #ifdef WriteImg
         imwrite(filename+".down.png", skinMask);
 #endif
-		   for(int i = 0 ;i <skinMask.rows;i++){
-			   uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
-			   for(int j =0; j<skinMask.cols;j++){
-				   if(pData[j] == 255){
-					   SumOfSkinPixel++;
-				   }
-			   }
-		   }
-        
+        for(int i = 0 ; i < skinMask.rows; i++){
+            uchar *pData = SkinAboveOnKnock.ptr<uchar>(i);
+            for(int j = 0; j < skinMask.cols; j++){
+                if(pData[j] == 255) {
+                   SumOfSkinPixel++;
+                }
+            }
+        }
+
 #ifdef WriteImg
         imwrite(filename+".down.png.png", SkinAboveOnKnock);
 #endif
-        
+
 #ifdef _SHOW_
-		    imshow("SKINABOVE",SkinAboveOnKnock);
+        imshow("SKINABOVE",SkinAboveOnKnock);
 #endif
-		   //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
-		   PTDEBUG("SumOfSkinPixel[%f]------SumOfSkinPixel[%d], stdKnockBaseArea[%f]\n", SumOfSkinPixel / stdKnockBaseArea, SumOfSkinPixel, stdKnockBaseArea);
-		   if(SumOfSkinPixel / stdKnockBaseArea >0.3){
-			 _getGesture(hand, handInfo, handStatus);//recognize fist or palm
-			StartToDetectKnockEnd = true;
-			KnockNumber = NumberOfKnock;
-		   } else{
-			   handStatus = HAND_STATUS_COUNT;
-		   }
-		}
+       //cout<<"SkinPixel:"<<SumOfSkinPixel / stdKnockBaseArea<<endl;
+       PTDEBUG("SumOfSkinPixel[%f]------SumOfSkinPixel[%d], stdKnockBaseArea[%f]\n", SumOfSkinPixel / stdKnockBaseArea, SumOfSkinPixel, stdKnockBaseArea);
+       if(SumOfSkinPixel / stdKnockBaseArea > 0.3) {
+          _getGesture(hand, handInfo, handStatus);//recognize fist or palm
+          StartToDetectKnockEnd = true;
+          //KnockNumber = NumberOfKnock;
+          KnockNumber = 1;
+       } else {
+          handStatus = HAND_STATUS_COUNT;
+       }
+    }
+
 #ifdef _SHOW_
-	imshow("KnockMask",knockMask);
-	imshow("SkinMask",skinMask);
-	imshow("SKINAREAMASK",MaskOfKnockStaticDown);
+    Mat DownHandInfoShow(Size(knockMask.cols*3,knockMask.rows),CV_8UC1);
+	knockMask.copyTo(DownHandInfoShow(Rect(0,0,knockMask.cols,knockMask.rows)));
+	skinMask.copyTo(DownHandInfoShow(Rect(skinMask.cols,0,skinMask.cols,skinMask.rows)));
+	MaskOfKnockStaticDown.copyTo(DownHandInfoShow(Rect(MaskOfKnockStaticDown.cols*2,0,MaskOfKnockStaticDown.cols,MaskOfKnockStaticDown.rows)));
+	
+	imshow("DownHandInfoSHow",DownHandInfoShow);
 	if(!hand.empty()){
-	  imshow("Hand",hand);
+	  imshow("HandDown",hand);
 	}
 #endif
+
     PTDEBUG("Exit %s ---> handStatus[%s]\n", __FUNCTION__, strHandGesture[handStatus]);
     return PT_RET_OK;
 }

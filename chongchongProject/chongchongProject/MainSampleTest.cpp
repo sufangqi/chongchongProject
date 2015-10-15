@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 
     handStatus = HAND_STATUS_COUNT;
 	int KnockNumberDown = -1;
-    recognitor.getDownHandGesture(handStatus,KnockNumberDown);
+    //recognitor.getDownHandGesture(handStatus,KnockNumberDown);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 	PTDEBUG("DOWN hand Number[%d]\n", KnockNumberDown);
 #ifdef _SHOW_
@@ -138,9 +138,10 @@ int main(int argc, char *argv[])
                putText(dispImg, "Down Hand ERROR !", Point(20,dispImg.rows/2-20), FONT_HERSHEY_PLAIN, fontScale, CV_RGB(0,0,255), 2);
                break;
     }
-	cout<<"The Hand Knock Number : Up "<<KnockNumberUp <<" Down "<<KnockNumberDown<<endl;
+	//cout<<"The Hand Knock Number : Up "<<KnockNumberUp <<" Down "<<KnockNumberDown<<endl;
     imshow("dispImg", dispImg);
     waitKey(0);
+	
 #endif
     PTDEBUG("show--------+++++++++++++\n");
   }
