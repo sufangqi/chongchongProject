@@ -50,7 +50,7 @@
       <LaunchMethod>Executable</LaunchMethod>
       <ExecutablePath>Debug\chongchongProject.exe</ExecutablePath>
       <StartupDirectory>chongchongProject\</StartupDirectory>
-      <Arguments>D:\facedata\阿里巴巴开放性项目\实验视频18\1.mp4</Arguments>
+      <Arguments>D:\facedata\阿里巴巴开放性项目\实验视频15\1.mp4</Arguments>
       <NetAppHost>IIS</NetAppHost>
       <NetBrowser>InternetExplorer</NetBrowser>
       <ExcludeSmallFuncs>true</ExcludeSmallFuncs>
@@ -69,6 +69,9 @@
   <Reports>
     <Report>
       <Path>chongchongProject150926.vsp</Path>
+    </Report>
+    <Report>
+      <Path>chongchongProject151030.vsp</Path>
     </Report>
   </Reports>
   <Launches>

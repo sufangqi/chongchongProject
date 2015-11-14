@@ -5,7 +5,7 @@
 using namespace std;
 using namespace cv;
 #define _SHOW_
-//#define _READ_IMAGE_
+#define _READ_IMAGE_
 #ifdef _SHOW_
  Mat dispImg;
 #endif
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 //  Mat logoFist = imread("fist.png");
 
   VideoCapture cap;
-  int imageNum=02;
+  int imageNum=1;
   cap.open(argv[1]);
   if(!cap.isOpened()) {
      PTDEBUG("VideoCapture is not opened!\n");
@@ -33,20 +33,21 @@ int main(int argc, char *argv[])
   } else {
      PTDEBUG("VideoCapture opened successful!\n");
   }
-  HandGestureRecognitor recognitor;
-  Mat frame;
+ HandGestureRecognitor recognitor;
+ Mat frame;
  PTBOOL isTapPointCorrect = FALSE;//必须放在最外面
   while(TRUE) {
    // waitKey(0);
 #ifndef  _READ_IMAGE_
     cap.read(frame);
+	resize(frame,frame,Size(640,480));
 #endif
 #ifdef _READ_IMAGE_
 	char image_name[20]={""};
-	sprintf_s(image_name,"bug14435264%d.png",imageNum++);
+	sprintf_s(image_name,"%d.jpg",imageNum++);
 	string image_name_string=image_name;
-	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片4\\"+image_name_string);
-	cvtColor(frame,frame,CV_RGB2BGR);
+	frame=imread("D:\\facedata\\阿里巴巴开放性项目\\实验视频19\\照片6\\"+image_name_string);
+	//cvtColor(frame,frame,CV_RGB2BGR);
 #endif
     if(frame.empty()) {
        PTDEBUG("Cannot grap the frame!\n");
@@ -56,10 +57,11 @@ int main(int argc, char *argv[])
        PTDEBUG("frame.cols[%d], frame.rows[%d]\n", frame.cols, frame.rows);
     }
 #ifdef _READ_IMAGE_//reverse clockwise roate the image 90 degree
-	/*transpose(frame,frame);
-    flip(frame,frame,0);*/
+	transpose(frame,frame);
+    flip(frame,frame,0);
+	resize(frame,frame,Size(640,480));
 #endif
-    if(PT_RET_OK != recognitor.init(frame.data, frame.cols, frame.rows, PT_IMG_BGR888)) {
+    if(PT_RET_OK != recognitor.init(frame.data, frame.cols, frame.rows, PT_IMG_BGR888,"ipad2")) {
        PTDEBUG("init failed!\n");
        return -2;
     } else {
@@ -87,7 +89,7 @@ int main(int argc, char *argv[])
     }
 
     //get base area of knock point
-    if(!recognitor.mIsTapPointInited) {
+	if(!recognitor.mIsCheckTapPoint) {
        PTDEBUG("this frame used to init knock point area\n");
        recognitor.studyTwoKnockBase();
        continue;
@@ -97,7 +99,7 @@ int main(int argc, char *argv[])
 
     PTHandStatus handStatus = HAND_STATUS_COUNT;
 	int KnockNumberUp = -1;
-    recognitor.getUpHandGesture(handStatus,KnockNumberUp);
+   recognitor.getUpHandGesture(handStatus,KnockNumberUp);
     PTDEBUG("recognized UP hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {
@@ -122,7 +124,7 @@ int main(int argc, char *argv[])
 #endif
     handStatus = HAND_STATUS_COUNT;
 	int KnockNumberDown = -1;
-    recognitor.getDownHandGesture(handStatus,KnockNumberDown);
+   // recognitor.getDownHandGesture(handStatus,KnockNumberDown);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 #ifdef _SHOW_
     switch(handStatus) {

@@ -5,23 +5,22 @@
 #ifdef _SHOW_
 //global mat for display dubug
 #define  DISP_WINDOW   "dispImg"
-Mat dispImg;
+extern Mat dispImg;
 #endif
 //unsigned int gHandID = 0;
-
-#define VideoMode
 
 //FIXME: SHIT global varible
 Mat gUpHandImg;
 Mat gDownHandImg;
+PTSysEnum eBoard;
 
 HandGestureRecognitor::HandGestureRecognitor()
 {
    mIsUpTapPointInited   = FALSE;//the up knock base is got
    mIsDownTapPointInited = FALSE;//the down knock
-   mIsTapPointInited     = FALSE;
-   mStdUpPointArea   = -1.0f;
-   mStdDownPointArea = -1.0f;
+   mIsCheckTapPoint      = FALSE;
+   mStdUpPointArea   = 1.0f;
+   mStdDownPointArea = 1.0f;
 }
 
 HandGestureRecognitor::~HandGestureRecognitor()
@@ -29,19 +28,12 @@ HandGestureRecognitor::~HandGestureRecognitor()
 //do nothing
 }
 
-PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PTImageFormatEnum eFormat)
+PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PTImageFormatEnum eFormat, const char* const pSystemInfo)
 {
-#ifdef VideoMode
-    if(pPixels==NULL || nWidth!=1280 || nHeight!=720) {
+    if(pPixels==NULL || nWidth!=640 || nHeight!=480 || pSystemInfo==NULL) {
        PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
        return PT_RET_INVALIDPARAM;
     }
-#else
-    if(pPixels==NULL || nWidth!=1280 || nHeight!=960) {
-       PTDEBUG("Invalid parameters: pPixels[%p], nWidth[%d], nHeight[%d], eFormat[%d]\n", pPixels, nWidth, nHeight, eFormat/*, strFormat[eFormat]*/);
-       return PT_RET_INVALIDPARAM;
-    }
-#endif
 
     Mat srcImg;
     _cvtColor2BGR(pPixels, nWidth, nHeight, eFormat, srcImg);
@@ -53,17 +45,47 @@ PTS32 HandGestureRecognitor::init(PTU8* pPixels, PTS32 nWidth, PTS32 nHeight, PT
     resize(srcImg, topLeft, Size(srcImg.cols/2,srcImg.rows/2));
 #endif
 
-#ifdef VideoMode
-    //1280x720 video as input
-    Mat subImg = srcImg(Rect(380, 0, 640, 720)).clone();
-#else
     //integrated in iPad
-    //Mat subImg = srcImg(Rect(380, 0, 580, 960)).clone();
-    Mat subImg = srcImg(Rect(230, 0, 650, 960)).clone();
-#endif
+    //TODO: this roi should be tuned according to iPad hardware.
+    eBoard = PT_SYS_NUM;
+    parseSystemInfo(pSystemInfo, eBoard);
+	eBoard = PT_APPLE_AIR;
+    Mat subImg;
+    switch(eBoard) {
+      case PT_APPLE_IPAD2:
+      case PT_APPLE_IPAD3:
+      case PT_APPLE_IPAD4: {
+           subImg = srcImg(Rect(125, 0, 400, 480)).clone();
+           break;
+           }
+      case PT_APPLE_MINI1: {
+           subImg = srcImg(Rect(110, 0, 440, 480)).clone();
+           break;
+           }
+      case PT_APPLE_MINI2: {
+           subImg = srcImg(Rect(160, 0, 390, 480)).clone();
+           break;
+           }
+      case PT_APPLE_MINI3: {
+           subImg = srcImg(Rect(150, 0, 350, 480)).clone();
+           break;
+           }
+      case PT_APPLE_AIR  : {
+           subImg = srcImg(Rect(145, 0, 355, 480)).clone();
+           break;
+           }
+      case PT_APPLE_AIR2 : {
+           subImg = srcImg(Rect(145, 0, 330, 480)).clone();
+           break;
+           }
+      default: {
+           subImg = srcImg(Rect(315, 0, 220, 480)).clone();
+           break;
+      }
+    }
+	imshow("subImg",subImg);
+    resize(subImg, subImg, Size(subImg.cols/2, subImg.rows/2));
 
-    resize(subImg, subImg, Size(subImg.cols/4, subImg.rows/4));
-    //获取敲击点的位置和坐标
     gUpHandImg   = subImg(Rect(0, 0, subImg.cols, subImg.rows/2));
     gDownHandImg = subImg(Rect(0, subImg.rows/2, subImg.cols, subImg.rows/2));
 
@@ -85,27 +107,28 @@ PTS32  HandGestureRecognitor::getKnockPointStatus(PTBOOL& isTapPointCorrect)
 {
     Mat knockMask(gUpHandImg.size(), CV_8UC1);
 
-    /*useless*/
+	_getKnockMask(gUpHandImg, knockMask,eBoard);
+
     double konckPointArea = -1.0f;
-
     Point centerUp = Point(-1, -1);
-    _getKnockMask(gUpHandImg, knockMask, ROIUP);
-    _getMaxContoursAreaCenter(knockMask, konckPointArea, centerUp);
-
+    vector<Point> ContoursOfUpPoint;
+    _getMaxContoursAreaCenter(knockMask, konckPointArea, centerUp, ContoursOfUpPoint);
+    PTDEBUG("konckPointArea[%f], centerUp[%d,%d]\n", konckPointArea, centerUp.x, centerUp.y);
+    
 #ifdef _SHOW_
     Mat draw(gUpHandImg.size(), CV_8UC3);
     cvtColor(knockMask, draw, CV_GRAY2BGR);
     circle(draw, centerUp, 4, CV_RGB(0,0,255));
-
+    
     Mat topRightUp = dispImg(Rect(dispImg.cols/2+gUpHandImg.cols, 0, knockMask.cols, knockMask.rows));
     resize(draw, topRightUp, draw.size());
 #endif
 
-    PTDEBUG("konckPointArea[%f], centerUp[%d,%d]\n", konckPointArea, centerUp.x, centerUp.y);
+	_getKnockMask(gDownHandImg, knockMask,eBoard);
 
     Point centerDown = Point(-1,-1);
-    _getKnockMask(gDownHandImg, knockMask, ROIDOWN);
-    _getMaxContoursAreaCenter(knockMask, konckPointArea, centerDown);
+    vector<Point> ContoursOfDownPoint;
+    _getMaxContoursAreaCenter(knockMask, konckPointArea, centerDown, ContoursOfDownPoint);
 
 #ifdef _SHOW_
     cvtColor(knockMask, draw, CV_GRAY2BGR);
@@ -125,10 +148,13 @@ PTS32  HandGestureRecognitor::getKnockPointStatus(PTBOOL& isTapPointCorrect)
     const double distance_up     = centerUp.y;
     const double distance_down   = abs((gUpHandImg.rows+gDownHandImg.rows) - centerDown.y);
     const double distance_right  = MIN(abs(gUpHandImg.cols-centerUp.x), abs(gUpHandImg.cols-centerDown.x));
+    const double distance_left   = MIN(centerUp.x, centerDown.x);
 
     /*below parameters should be tuned*/
-    PTDEBUG("knockPointAngle[%f], distance_down[%f], distance_right[%f], distance_up[%f]\n", knockPointAngle, distance_down, distance_right, distance_up);
-    if(knockPointAngle>15.0f || distance_up<gUpHandImg.rows/5.0f || distance_down<gDownHandImg.rows/5.0f || distance_right<gUpHandImg.cols/10.0f) {
+    PTDEBUG("knockPointAngle[%f], distance_down[%f], distance_right[%f], distance_up[%f]\n",
+             knockPointAngle, distance_down, distance_right, distance_up);
+
+    if(knockPointAngle > 15.0f || distance_up < 20 || distance_down < 20 || distance_right < 10 || distance_left < 40 ) {
        PTDEBUG("Tap points are not placed correct!\n");
        isTapPointCorrect = FALSE;
     } else {
@@ -144,14 +170,14 @@ PTS32 HandGestureRecognitor::studyTwoKnockBase(void)
     PTDEBUG("Enter %s\n", __FUNCTION__);
 
     if(!this->mIsUpTapPointInited) {
-       _getKnockBase(gUpHandImg, ROIUP, this->mStdUpPointArea, this->mIsUpTapPointInited);
+		_getKnockBase(gUpHandImg, this->mStdUpPointArea, this->mIsUpTapPointInited,eBoard);
        PTDEBUG("mStdUpPointArea[%f], mIsUpTapPointInited[%s]\n", this->mStdUpPointArea, this->mIsUpTapPointInited?"true":"false");
     } else {
        PTDEBUG("mIsUpTapPointInited[%s], mStdUpPointArea[%f]\n", this->mIsUpTapPointInited?"true":"false", this->mStdUpPointArea);
     }
 
     if(!this->mIsDownTapPointInited) {
-       _getKnockBase(gDownHandImg, ROIDOWN, this->mStdDownPointArea, this->mIsDownTapPointInited);
+		_getKnockBase(gDownHandImg, this->mStdDownPointArea, this->mIsDownTapPointInited,eBoard);
        PTDEBUG("mStdDownPointArea[%f], mIsDownTapPointInited[%s]\n", this->mStdDownPointArea, this->mIsDownTapPointInited?"true":"false");
     } else {
        PTDEBUG("mIsDownTapPointInited[%s], mStdDownPointArea[%f]\n", this->mIsDownTapPointInited?"true":"false", this->mStdDownPointArea);
@@ -160,11 +186,11 @@ PTS32 HandGestureRecognitor::studyTwoKnockBase(void)
     if(this->mIsUpTapPointInited && this->mIsDownTapPointInited) {
        PTDEBUG("both mIsUpTapPointInited and mIsDownTapPointInited are true, set mIsTapPointInited to TRUE\n");
        PTDEBUG("mStdUpPointArea[%f], mStdDownPointArea[%f]\n", this->mStdUpPointArea, this->mStdDownPointArea);
-       this->mIsTapPointInited = TRUE;
+       this->mIsCheckTapPoint = TRUE;
     } else {
        PTDEBUG("one of mIsUpTapPointInited[%s] and mIsDownTapPointInited[%s] is not true, set mIsTapPointInited to FALSE\n",
                 this->mIsUpTapPointInited?"true":"false", this->mIsDownTapPointInited?"true":"false");
-       this->mIsTapPointInited = FALSE;
+       this->mIsCheckTapPoint = FALSE;
     }
 
     PTDEBUG("Exit %s\n", __FUNCTION__);
@@ -173,7 +199,9 @@ PTS32 HandGestureRecognitor::studyTwoKnockBase(void)
 
 PTS32 HandGestureRecognitor::getUpHandGesture(PTHandStatus& handStatus, int& KnockNumber)
 {
-    _getHandRecognitizeGestureUp(gUpHandImg, this->mStdUpPointArea, ROIUP, handStatus, KnockNumber);
+	int HandType = 0;//right hand
+    _getHandRecognitizeGesture(gUpHandImg, this->mStdUpPointArea,eBoard,HandType,handStatus, KnockNumber);
+    //imwrite(" gUpHandImg.jpg", gUpHandImg);
     return PT_RET_OK;
 }
 
@@ -181,7 +209,9 @@ PTS32 HandGestureRecognitor::getDownHandGesture(PTHandStatus& handStatus, int& K
 {
     //flipping around the x-axis
     flip(gDownHandImg, gDownHandImg, 0);
-    _getHandRecognitizeGestureDown(gDownHandImg, this->mStdDownPointArea, ROIDOWN, handStatus, KnockNumber);
+    //imwrite(" gDownHandImg .jpg", gDownHandImg);
+	int HandType = 1;//left hand
+    _getHandRecognitizeGesture(gDownHandImg, this->mStdDownPointArea, eBoard,HandType,handStatus, KnockNumber);
     return PT_RET_OK;
 }
 

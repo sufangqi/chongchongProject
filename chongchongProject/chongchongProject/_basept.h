@@ -55,8 +55,10 @@ typedef enum _SystemEnum {
     PT_APPLE_AIR     = 2,
     PT_APPLE_AIR2    = 3,
     PT_APPLE_MINI3   = 4,
-
-    PT_SYS_NUM       = 5,
+	PT_APPLE_IPAD3   = 5,
+	PT_APPLE_IPAD4   = 6,
+	PT_APPLE_MINI2   = 7,
+    PT_SYS_NUM       = 8,
 } PTSysEnum;
 
 #define iOSMinSDK 6

@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
   while(TRUE) {
    // waitKey(0);
     cap.read(frame);
-
     if(frame.empty()) {
        PTDEBUG("Cannot grap the frame!\n");
        break;
@@ -115,7 +114,7 @@ int main(int argc, char *argv[])
 
     handStatus = HAND_STATUS_COUNT;
 	int KnockNumberDown = -1;
-    //recognitor.getDownHandGesture(handStatus,KnockNumberDown);
+    recognitor.getDownHandGesture(handStatus,KnockNumberDown);
     PTDEBUG("recognized DOWN hand gesture[%s]\n", strHandGesture[handStatus]);
 	PTDEBUG("DOWN hand Number[%d]\n", KnockNumberDown);
 #ifdef _SHOW_
@@ -140,7 +139,7 @@ int main(int argc, char *argv[])
     }
 	//cout<<"The Hand Knock Number : Up "<<KnockNumberUp <<" Down "<<KnockNumberDown<<endl;
     imshow("dispImg", dispImg);
-    waitKey(0);
+    waitKey(1);
 	
 #endif
     PTDEBUG("show--------+++++++++++++\n");
